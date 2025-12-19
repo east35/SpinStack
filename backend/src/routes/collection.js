@@ -298,4 +298,24 @@ router.post('/:id/like', requireAuth, async (req, res) => {
   }
 });
 
+// Get all available genres
+router.get('/genres', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session.userId;
+
+    const result = await db.query(
+      `SELECT DISTINCT unnest(genres) as genre
+      FROM vinyl_records
+      WHERE user_id = $1 AND genres IS NOT NULL
+      ORDER BY genre ASC`,
+      [userId]
+    );
+
+    res.json({ genres: result.rows.map(r => r.genre) });
+  } catch (error) {
+    console.error('Get genres error:', error);
+    res.status(500).json({ error: 'Failed to get genres' });
+  }
+});
+
 module.exports = router;

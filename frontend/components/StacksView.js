@@ -81,7 +81,7 @@ export default function StacksView() {
   };
 
   if (loading) {
-    return <div className="text-center py-12">Loading...</div>;
+    return <div className="text-center py-12">Cueing...</div>;
   }
 
   if (!dailyStack || dailyStack.albums.length === 0) {
