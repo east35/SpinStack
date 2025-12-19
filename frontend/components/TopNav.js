@@ -46,7 +46,7 @@ export default function TopNav({ user, onLogout, currentView }) {
         <div className="relative">
           <button
             onClick={() => setShowDropdown(!showDropdown)}
-            className="flex items-center gap-2 text-sm text-gray-400 bg-gray-900 rounded-lg px-4 py-2 hover:text-gray-300 transition-all min-h-[44px]"
+            className="flex items-center gap-2 text-sm text-gray-400 bg-gray-900 rounded-lg px-4 py-2 overflow-hidden hover:text-gray-300 transition-all min-h-[44px]"
           >
             <Icon name="user" size={16} className="text-gray-400" />
             <span>@{user?.discogs_username}</span>
