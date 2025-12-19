@@ -7,6 +7,102 @@ const cacheService = require('../services/cache');
 // All routes require authentication
 router.use(requireAuth);
 
+// Style clusters for cross-genre stack generation
+// Each cluster groups related styles that create cohesive listening experiences
+const STYLE_CLUSTERS = {
+  'atmospheric': {
+    name: 'Atmospheric',
+    styles: ['Shoegaze', 'Ambient', 'Ethereal', 'Dream Pop', 'Post-Rock', 'Space Rock', 'Downtempo', 'Drone', 'Dark Ambient']
+  },
+  'heavy': {
+    name: 'Heavy',
+    styles: ['Doom Metal', 'Progressive Metal', 'Stoner Rock', 'Sludge Metal', 'Hardcore', 'Noise', 'Industrial', 'Post-Metal', 'Black Metal', 'Death Metal']
+  },
+  'groovy': {
+    name: 'Groovy',
+    styles: ['Funk', 'Disco', 'Nu-Disco', 'French House', 'Boogie', 'Soul', 'Rhythm & Blues', 'Deep House', 'Acid Jazz']
+  },
+  'chill': {
+    name: 'Chill',
+    styles: ['Downtempo', 'Chillwave', 'Lo-Fi', 'Easy Listening', 'Lounge', 'Trip Hop', 'Ambient', 'New Age', 'Balearic']
+  },
+  'experimental': {
+    name: 'Experimental',
+    styles: ['Avantgarde', 'Experimental', 'Noise', 'Musique Concrète', 'Free Jazz', 'Free Improvisation', 'Art Rock', 'No Wave', 'Leftfield']
+  },
+  'electronic-dance': {
+    name: 'Electronic Dance',
+    styles: ['Techno', 'House', 'Minimal Techno', 'Acid House', 'Electro', 'Trance', 'Breakbeat', 'Drum n Bass', 'UK Garage']
+  },
+  'melancholic': {
+    name: 'Melancholic',
+    styles: ['Slowcore', 'Sadcore', 'Gothic Rock', 'Goth Rock', 'Darkwave', 'Cold Wave', 'Post-Punk', 'Ethereal']
+  },
+  'psychedelic': {
+    name: 'Psychedelic',
+    styles: ['Psychedelic Rock', 'Psychedelic', 'Neo-Psychedelia', 'Space Rock', 'Acid Rock', 'Krautrock', 'Stoner Rock']
+  },
+  'hip-hop-beats': {
+    name: 'Hip-Hop & Beats',
+    styles: ['Jazzy Hip-Hop', 'Abstract', 'Instrumental Hip-Hop', 'Boom Bap', 'Trip Hop', 'Turntablism', 'Beat Music', 'Lo-Fi']
+  },
+  'synth-wave': {
+    name: 'Synth & Wave',
+    styles: ['Synth-pop', 'New Wave', 'Coldwave', 'Darkwave', 'Italo-Disco', 'Electropop', 'Synthwave', 'Minimal Synth']
+  }
+};
+
+// Helper function to generate style-based stacks
+async function generateStyleStacks(userId) {
+  const stacks = [];
+  
+  for (const [clusterId, cluster] of Object.entries(STYLE_CLUSTERS)) {
+    // Query records matching any style in this cluster
+    const result = await db.query(
+      `SELECT id, discogs_release_id, title, artist, album_art_url, year, genres, styles,
+              array_length(genres, 1) as genre_count
+       FROM vinyl_records
+       WHERE user_id = $1 
+         AND styles IS NOT NULL 
+         AND styles && $2::text[]
+       ORDER BY 
+         -- Prioritize records with multiple matching styles (more representative of the cluster)
+         (SELECT COUNT(*) FROM unnest(styles) s WHERE s = ANY($2::text[])) DESC,
+         -- Then by genre diversity (cross-genre discoveries are more interesting)
+         array_length(genres, 1) DESC NULLS LAST,
+         RANDOM()
+       LIMIT 16`,
+      [userId, cluster.styles]
+    );
+    
+    // Deduplicate by release ID
+    const seen = new Set();
+    const albums = [];
+    for (const row of result.rows) {
+      const key = row.discogs_release_id || row.id;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const { discogs_release_id, genre_count, ...rest } = row;
+      albums.push(rest);
+      if (albums.length === 8) break;
+    }
+    
+    // Only include clusters with at least 4 albums
+    if (albums.length >= 4) {
+      stacks.push({
+        id: `style-${clusterId}`,
+        name: cluster.name,
+        type: 'style',
+        albums
+      });
+    }
+  }
+  
+  // Sort by album count (most populated clusters first) and limit to top 6
+  stacks.sort((a, b) => b.albums.length - a.albums.length);
+  return stacks.slice(0, 6);
+}
+
 // Helper function to generate daily stack
 async function generateDailyStack(userId) {
   // Pull more than needed, then enforce unique releases
@@ -89,8 +185,9 @@ function getUniqueAlbums(rows) {
 // Helper function to generate weekly stacks
 async function generateWeeklyStacks(userId, weekStartDate) {
   const stacks = [];
+  const genreStacks = [];
 
-  const fetchStack = async (id, name, whereClause, orderClause = 'ORDER BY RANDOM()', limit = 16, extraParams = []) => {
+  const fetchStack = async (id, name, whereClause, orderClause = 'ORDER BY RANDOM()', limit = 16, extraParams = [], targetArray = stacks) => {
     const result = await db.query(
       `SELECT id, discogs_release_id, title, artist, album_art_url, year, genres
        FROM vinyl_records
@@ -101,32 +198,15 @@ async function generateWeeklyStacks(userId, weekStartDate) {
     );
     const albums = getUniqueAlbums(result.rows).slice(0, 8);
     if (albums.length >= 4) {
-      stacks.push({ id, name, albums });
+      targetArray.push({ id, name, albums });
     }
   };
 
-  // Top genres (up to 4)
-  const genresResult = await db.query(
-    `SELECT unnest(genres) as genre, COUNT(*) as count
-     FROM vinyl_records
-     WHERE user_id = $1 AND genres IS NOT NULL AND array_length(genres, 1) > 0
-     GROUP BY genre
-     ORDER BY count DESC
-     LIMIT 4`,
-    [userId]
-  );
+  // 1. First: Style-based stacks (cross-genre mood clusters) - up to 8
+  const styleStacks = await generateStyleStacks(userId);
+  stacks.push(...styleStacks.slice(0, 8));
 
-  for (const { genre } of genresResult.rows) {
-    await fetchStack(
-      `genre-${genre.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
-      `Genre: ${genre}`,
-      'AND $2 = ANY(genres)',
-      'ORDER BY RANDOM()',
-      24,
-      [genre]
-    );
-  }
-
+  // 2. Curated stacks (behavior-based)
   // Recent additions (last 90 days)
   await fetchStack(
     'recent-additions',
@@ -159,6 +239,14 @@ async function generateWeeklyStacks(userId, weekStartDate) {
     'ORDER BY year ASC NULLS LAST'
   );
 
+  // 90s
+  await fetchStack(
+    'nineties',
+    '90s',
+    'AND year IS NOT NULL AND year >= 1990 AND year < 2000',
+    'ORDER BY RANDOM()'
+  );
+
   // 2000s+
   await fetchStack(
     'modern',
@@ -174,6 +262,32 @@ async function generateWeeklyStacks(userId, weekStartDate) {
     'AND is_liked = true',
     'ORDER BY RANDOM()'
   );
+
+  // 3. Last: Genre stacks (up to 4)
+  const genresResult = await db.query(
+    `SELECT unnest(genres) as genre, COUNT(*) as count
+     FROM vinyl_records
+     WHERE user_id = $1 AND genres IS NOT NULL AND array_length(genres, 1) > 0
+     GROUP BY genre
+     ORDER BY count DESC
+     LIMIT 4`,
+    [userId]
+  );
+
+  for (const { genre } of genresResult.rows) {
+    await fetchStack(
+      `genre-${genre.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+      `Genre: ${genre}`,
+      'AND $2 = ANY(genres)',
+      'ORDER BY RANDOM()',
+      24,
+      [genre],
+      genreStacks
+    );
+  }
+
+  // Add genre stacks at the end
+  stacks.push(...genreStacks);
 
   // Fallback: random mixes if none found yet
   if (stacks.length === 0) {
@@ -191,7 +305,8 @@ async function generateWeeklyStacks(userId, weekStartDate) {
     }
   }
 
-  return stacks;
+  // Limit to 16 stacks total
+  return stacks.slice(0, 16);
 }
 
 // Get weekly stacks - persistent for 7 days (renamed from /random)
@@ -235,6 +350,26 @@ router.get('/weekly', async (req, res) => {
 router.get('/random', async (req, res) => {
   req.url = '/weekly';
   router.handle(req, res);
+});
+
+// Get style-based stacks only (mood/vibe clusters)
+router.get('/styles', async (req, res) => {
+  try {
+    const userId = req.session.userId;
+    const stacks = await generateStyleStacks(userId);
+    
+    res.json({
+      stacks,
+      clusters: Object.keys(STYLE_CLUSTERS).map(id => ({
+        id,
+        name: STYLE_CLUSTERS[id].name,
+        styles: STYLE_CLUSTERS[id].styles
+      }))
+    });
+  } catch (error) {
+    console.error('Get style stacks error:', error);
+    res.status(500).json({ error: 'Failed to fetch style stacks' });
+  }
 });
 
 // Refresh daily stack (manual regeneration)

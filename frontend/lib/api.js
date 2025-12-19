@@ -24,6 +24,7 @@ export const collection = {
 export const stacks = {
   getDaily: () => api.get('/api/stacks/daily'),
   getWeekly: () => api.get('/api/stacks/weekly'),
+  getStyles: () => api.get('/api/stacks/styles'),
   getCurated: () => api.get('/api/stacks/random'), // Alias for backward compatibility
   refreshDaily: () => api.post('/api/stacks/daily/refresh'),
   refreshWeekly: () => api.post('/api/stacks/weekly/refresh'),

@@ -143,6 +143,13 @@ export default function StacksView() {
             <div className="space-y-4 mt-10">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg md:text-xl font-bold">This Week's Stacks</h3>
+                <button
+                  onClick={handleRefreshWeekly}
+                  className="text-gray-400 hover:text-white transition p-2"
+                  title="Refresh weekly stacks"
+                >
+                  <Icon name="refresh" size={20} />
+                </button>
               </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             {curatedStacks.map((stack) => (
