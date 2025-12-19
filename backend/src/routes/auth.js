@@ -1,7 +1,16 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
+const { createClient } = require('redis');
 const discogsService = require('../services/discogs');
 const db = require('../db');
+
+// Redis client for OAuth state storage (separate from session store)
+let redisClient;
+if (process.env.REDIS_URL) {
+  redisClient = createClient({ url: process.env.REDIS_URL });
+  redisClient.connect().catch(console.error);
+}
 
 // Step 1: Initiate OAuth flow
 router.get('/login', async (req, res) => {
@@ -10,24 +19,30 @@ router.get('/login', async (req, res) => {
     const callbackUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/callback`;
     const requestData = await discogsService.getRequestToken(callbackUrl);
 
-    // Store tokens in session
-    req.session.oauthToken = requestData.token;
-    req.session.oauthTokenSecret = requestData.tokenSecret;
+    // Generate a unique state key for this OAuth flow
+    const stateKey = crypto.randomBytes(32).toString('hex');
+    
+    // Store OAuth tokens in Redis with the state key (expires in 10 minutes)
+    if (redisClient) {
+      await redisClient.setEx(`oauth:${stateKey}`, 600, JSON.stringify({
+        token: requestData.token,
+        tokenSecret: requestData.tokenSecret
+      }));
+      console.log('✅ OAuth tokens stored in Redis with state:', stateKey);
+    } else {
+      // Fallback to session if Redis not available
+      req.session.oauthToken = requestData.token;
+      req.session.oauthTokenSecret = requestData.tokenSecret;
+      console.log('✅ OAuth tokens stored in session (fallback)');
+    }
 
-    console.log('✅ OAuth tokens stored in session:', req.sessionID);
-    console.log('Authorize URL:', requestData.authorizeUrl);
+    // Append state to authorize URL
+    const authorizeUrlWithState = `${requestData.authorizeUrl}&state=${stateKey}`;
+    console.log('Authorize URL:', authorizeUrlWithState);
 
-    // Explicitly save session before redirecting
-    req.session.save((err) => {
-      if (err) {
-        console.error('❌ Session save error:', err);
-        return res.status(500).json({ error: 'Failed to save session' });
-      }
-
-      console.log('✅ Session saved, returning authorize URL');
-      res.json({
-        authorizeUrl: requestData.authorizeUrl,
-      });
+    res.json({
+      authorizeUrl: authorizeUrlWithState,
+      state: stateKey // Also return state for frontend to store
     });
   } catch (error) {
     console.error('❌ OAuth initiation error:', error);
@@ -39,26 +54,45 @@ router.get('/login', async (req, res) => {
 router.post('/callback', async (req, res) => {
   try {
     console.log('🔐 OAuth callback received');
-    console.log('Session ID:', req.sessionID);
-    console.log('Session data:', JSON.stringify(req.session, null, 2));
-    const { oauth_verifier } = req.body;
+    const { oauth_verifier, state } = req.body;
     console.log('OAuth verifier:', oauth_verifier);
+    console.log('State key:', state);
 
     if (!oauth_verifier) {
       console.log('❌ Missing OAuth verifier');
       return res.status(400).json({ error: 'Missing OAuth verifier' });
     }
 
-    const { oauthToken, oauthTokenSecret } = req.session;
+    let oauthToken, oauthTokenSecret;
 
-    if (!oauthToken || !oauthTokenSecret) {
-      console.log('❌ Missing OAuth tokens in session');
-      console.log('oauthToken:', oauthToken);
-      console.log('oauthTokenSecret:', oauthTokenSecret);
-      return res.status(400).json({ error: 'Missing OAuth tokens in session' });
+    // Try to get OAuth tokens from Redis using state key
+    if (state && redisClient) {
+      const storedData = await redisClient.get(`oauth:${state}`);
+      if (storedData) {
+        const parsed = JSON.parse(storedData);
+        oauthToken = parsed.token;
+        oauthTokenSecret = parsed.tokenSecret;
+        // Delete the state key after use (one-time use)
+        await redisClient.del(`oauth:${state}`);
+        console.log('✅ Retrieved OAuth tokens from Redis');
+      }
     }
 
-    console.log('✅ Session has OAuth tokens, proceeding with exchange');
+    // Fallback to session if Redis lookup failed
+    if (!oauthToken || !oauthTokenSecret) {
+      oauthToken = req.session.oauthToken;
+      oauthTokenSecret = req.session.oauthTokenSecret;
+      if (oauthToken && oauthTokenSecret) {
+        console.log('✅ Retrieved OAuth tokens from session (fallback)');
+      }
+    }
+
+    if (!oauthToken || !oauthTokenSecret) {
+      console.log('❌ Missing OAuth tokens - neither in Redis nor session');
+      return res.status(400).json({ error: 'OAuth session expired. Please try logging in again.' });
+    }
+
+    console.log('✅ Have OAuth tokens, proceeding with exchange');
 
     // Exchange for access token
     const accessData = await discogsService.getAccessToken(

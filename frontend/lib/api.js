@@ -7,7 +7,7 @@ const api = axios.create({
 
 export const auth = {
   login: () => api.get('/api/auth/login'),
-  callback: (oauthVerifier) => api.post('/api/auth/callback', { oauth_verifier: oauthVerifier }),
+  callback: (oauthVerifier, state) => api.post('/api/auth/callback', { oauth_verifier: oauthVerifier, state }),
   me: () => api.get('/api/auth/me'),
   logout: () => api.post('/api/auth/logout'),
   updatePreferences: (data) => api.patch('/api/auth/preferences', data),

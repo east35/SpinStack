@@ -10,6 +10,10 @@ export default function Login({ onLogin }) {
     try {
       setLoading(true);
       const response = await auth.login();
+      // Store state in sessionStorage for the callback
+      if (response.data.state) {
+        sessionStorage.setItem('oauth_state', response.data.state);
+      }
       // Redirect user to Discogs authorization
       window.location.href = response.data.authorizeUrl;
     } catch (error) {

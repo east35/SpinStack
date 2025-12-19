@@ -12,6 +12,10 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleCallback = async () => {
       const oauthVerifier = searchParams.get('oauth_verifier');
+      // Get state from URL (Discogs passes it back) or from sessionStorage
+      const stateFromUrl = searchParams.get('state');
+      const stateFromStorage = sessionStorage.getItem('oauth_state');
+      const state = stateFromUrl || stateFromStorage;
 
       if (!oauthVerifier) {
         alert('Authentication failed: Missing verification code');
@@ -20,7 +24,10 @@ export default function AuthCallback() {
       }
 
       try {
-        await auth.callback(oauthVerifier);
+        // Pass both verifier and state to backend
+        await auth.callback(oauthVerifier, state);
+        // Clear stored state
+        sessionStorage.removeItem('oauth_state');
         // Use replace instead of push to prevent back button issues
         router.replace('/');
       } catch (error) {
