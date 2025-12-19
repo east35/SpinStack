@@ -37,12 +37,13 @@ app.use(express.urlencoded({ extended: true }));
 const sessionConfig = {
   secret: process.env.SESSION_SECRET || 'change-me-in-production',
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: true, // Create session even if not modified (needed for OAuth)
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Must be false for HTTP
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-    sameSite: 'lax', // Important for OAuth callbacks
+    sameSite: 'lax', // Lax allows cookies on GET redirects from external sites
+    // Don't set domain - let browser use the request hostname
   },
 };
 
@@ -55,6 +56,24 @@ app.use(session(sessionConfig));
 // Routes
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Session debug endpoint (development only)
+app.get('/api/debug/session', (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  res.json({
+    sessionId: req.sessionID,
+    hasSession: !!req.session,
+    userId: req.session?.userId || null,
+    username: req.session?.username || null,
+    hasOAuthTokens: !!(req.session?.oauthToken && req.session?.oauthTokenSecret),
+    cookie: {
+      maxAge: req.session?.cookie?.maxAge,
+      expires: req.session?.cookie?.expires,
+    }
+  });
 });
 
 app.use('/api/auth', authRoutes);

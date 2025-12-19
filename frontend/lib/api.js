@@ -17,6 +17,7 @@ export const collection = {
   sync: () => api.post('/api/collection/sync'),
   getAll: (params) => api.get('/api/collection', { params }),
   getStats: () => api.get('/api/collection/stats'),
+  getGenres: () => api.get('/api/collection/genres'),
   markPlayed: (id) => api.post(`/api/collection/${id}/play`),
   toggleLike: (id) => api.post(`/api/collection/${id}/like`),
 };

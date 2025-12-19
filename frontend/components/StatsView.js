@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { stats as statsApi, collection } from '../lib/api';
+import Icon from './Icon';
+import AlbumDetailModal from './AlbumDetailModal';
 
 export default function StatsView() {
   const [stats, setStats] = useState(null);
@@ -7,6 +9,7 @@ export default function StatsView() {
   const [filteredRecords, setFilteredRecords] = useState(null);
   const [activeFilter, setActiveFilter] = useState(null);
   const [loadingFilter, setLoadingFilter] = useState(false);
+  const [selectedAlbum, setSelectedAlbum] = useState(null);
 
   useEffect(() => {
     loadStats();
@@ -48,6 +51,41 @@ export default function StatsView() {
     setActiveFilter(null);
   };
 
+  const handleToggleLike = async (recordId) => {
+    try {
+      await collection.toggleLike(recordId);
+      // Update the record in filtered records
+      setFilteredRecords((prev) =>
+        prev.map((r) => (r.id === recordId ? { ...r, is_liked: !r.is_liked } : r))
+      );
+      // Update selected album if open
+      if (selectedAlbum && selectedAlbum.id === recordId) {
+        setSelectedAlbum((prev) => ({ ...prev, is_liked: !prev.is_liked }));
+      }
+    } catch (error) {
+      console.error('Failed to toggle like:', error);
+    }
+  };
+
+  const handleMarkPlayed = async (recordId) => {
+    try {
+      await collection.markPlayed(recordId);
+      const newCount = (selectedAlbum?.id === recordId ? selectedAlbum.listened_count : 0) + 1;
+      // Update the record in filtered records
+      setFilteredRecords((prev) =>
+        prev.map((r) =>
+          r.id === recordId ? { ...r, listened_count: (r.listened_count || 0) + 1 } : r
+        )
+      );
+      // Update selected album if open
+      if (selectedAlbum && selectedAlbum.id === recordId) {
+        setSelectedAlbum((prev) => ({ ...prev, listened_count: newCount }));
+      }
+    } catch (error) {
+      console.error('Failed to mark played:', error);
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-12">Loading stats...</div>;
   }
@@ -72,23 +110,91 @@ export default function StatsView() {
         </div>
 
         {loadingFilter ? (
-          <div className="text-center py-12">Loading...</div>
+          <div className="text-center py-12">Cueing...</div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {filteredRecords.map((record) => (
-              <div key={record.id} className="bg-gray-900 rounded-lg overflow-hidden">
-                <img
-                  src={record.album_art_url || '/placeholder-album.png'}
-                  alt={record.title}
-                  className="w-full aspect-square object-cover"
-                />
-                <div className="p-3">
-                  <p className="font-semibold text-sm truncate">{record.title}</p>
-                  <p className="text-xs text-gray-400 truncate">{record.artist}</p>
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+              {filteredRecords.map((record) => (
+                <div key={record.id} className="album-card group">
+                  <div
+                    className="aspect-square bg-secondary mb-3 rounded overflow-hidden relative cursor-pointer"
+                    onClick={() => setSelectedAlbum(record)}
+                  >
+                    {record.album_art_url ? (
+                      <img
+                        src={record.album_art_url}
+                        alt={record.title}
+                        className="w-full h-full object-cover transition-opacity duration-200 md:group-hover:opacity-70"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-600">
+                        No Image
+                      </div>
+                    )}
+
+                    {/* Hover overlay with action buttons */}
+                    <div className="absolute inset-0 bg-black/60 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleLike(record.id);
+                        }}
+                        className="w-12 h-12 rounded-full bg-white/90 hover:bg-white flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                        title={record.is_liked ? "Unlike" : "Like"}
+                      >
+                        <Icon
+                          name="heart"
+                          size={20}
+                          className={record.is_liked ? "text-red-500" : "text-gray-700"}
+                        />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMarkPlayed(record.id);
+                        }}
+                        className="w-12 h-12 rounded-full bg-white/90 hover:bg-white flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                        title="Mark as played"
+                      >
+                        <Icon name="check-circle" size={20} className="text-gray-700" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedAlbum(record);
+                        }}
+                        className="w-12 h-12 rounded-full bg-white/90 hover:bg-white flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                        title="View details"
+                      >
+                        <Icon name="info" size={20} className="text-gray-700" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <h3 className="font-medium text-sm mb-1 truncate">{record.title}</h3>
+                  <p className="text-gray-400 text-xs mb-1 truncate">{record.artist}</p>
+                  <div className="text-xs flex items-center gap-2 flex-wrap">
+                    {record.year && <span className="text-gray-500">{record.year}</span>}
+                    {typeof record.listened_count === 'number' && (
+                      <span className="text-gray-500">
+                        {record.listened_count === 0 ? '0 plays' : `${record.listened_count} ${record.listened_count === 1 ? 'play' : 'plays'}`}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+
+            {/* Album Detail Modal */}
+            {selectedAlbum && (
+              <AlbumDetailModal
+                album={selectedAlbum}
+                onClose={() => setSelectedAlbum(null)}
+                onToggleLike={(id) => handleToggleLike(id)}
+                onMarkPlayed={(id) => handleMarkPlayed(id)}
+              />
+            )}
+          </>
         )}
       </div>
     );

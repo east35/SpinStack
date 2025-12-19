@@ -29,7 +29,7 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@700&display=swap" rel="stylesheet" />
       </head>
-      <body className={outfit.className} style={{borderTop: '2px solid transparent', backgroundImage: 'linear-gradient(to bottom, black, black), linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3)', backgroundOrigin: 'padding-box, border-box', backgroundClip: 'padding-box, border-box'}}>
+      <body className={outfit.className}>
         {children}
         <footer className="border-t border-gray-800 py-6 mt-12">
           <div className="max-w-7xl mx-auto px-4 text-center text-gray-400 text-sm">

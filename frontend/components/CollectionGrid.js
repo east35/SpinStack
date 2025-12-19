@@ -39,7 +39,9 @@ export default function CollectionGrid() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState(''); // Separate state for input value
   const [selectedGenre, setSelectedGenre] = useState('');
+  const [availableGenres, setAvailableGenres] = useState([]);
   const [sort, setSort] = useState('added_desc');
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -110,6 +112,28 @@ export default function CollectionGrid() {
       setLoadingMore(false);
     }
   }, [page, sort, searchQuery, selectedGenre, autoSyncAttempted, autoSyncing, perPage]);
+
+  // Load available genres
+  useEffect(() => {
+    const loadGenres = async () => {
+      try {
+        const response = await collection.getGenres();
+        setAvailableGenres(response.data.genres);
+      } catch (error) {
+        console.error('Failed to load genres:', error);
+      }
+    };
+    loadGenres();
+  }, []);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput);
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Reset when filters change
   useEffect(() => {
@@ -196,11 +220,8 @@ export default function CollectionGrid() {
       <div className="w-full">
         <input
           type="text"
-          value={searchQuery}
-          onChange={(e) => {
-            setPage(0);
-            setSearchQuery(e.target.value);
-          }}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           placeholder="Search your collection..."
           className="bg-secondary rounded px-4 py-3 md:py-2 text-sm w-full min-h-[44px]"
         />
@@ -209,16 +230,18 @@ export default function CollectionGrid() {
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <div className="flex items-center gap-2 flex-1 sm:flex-initial">
           <label className="text-sm text-gray-400 whitespace-nowrap">Genre</label>
-          <input
-            type="text"
+          <select
             value={selectedGenre}
-            onChange={(e) => {
-              setPage(0);
-              setSelectedGenre(e.target.value);
-            }}
-            placeholder="All"
-            className="bg-secondary rounded px-3 py-3 md:py-2 text-sm flex-1 sm:w-36 min-h-[44px]"
-          />
+            onChange={(e) => setSelectedGenre(e.target.value)}
+            className="bg-secondary rounded px-3 py-3 md:py-2 text-sm flex-1 sm:w-48 min-h-[44px]"
+          >
+            <option value="">All Genres</option>
+            {availableGenres.map((genre) => (
+              <option key={genre} value={genre}>
+                {genre}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="flex items-center gap-2 flex-1 sm:flex-initial">
           <label className="text-sm text-gray-400 whitespace-nowrap">Sort</label>
