@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-black text-white;
+}
+
+/* Tidal-inspired minimalist styling */
+.album-card {
+  @apply transition-transform duration-200 hover:scale-105;
+}
+
+.btn-primary {
+  @apply bg-white text-black px-6 py-3 rounded-full font-medium hover:bg-gray-200 transition-colors;
+}
+
+.btn-secondary {
+  @apply bg-secondary text-white px-6 py-3 rounded-full font-medium hover:bg-accent transition-colors;
+}
