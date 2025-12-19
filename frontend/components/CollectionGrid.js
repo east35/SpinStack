@@ -49,7 +49,9 @@ export default function CollectionGrid() {
   const [autoSyncing, setAutoSyncing] = useState(false);
   const [autoSyncAttempted, setAutoSyncAttempted] = useState(false);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
+  const [searchFocused, setSearchFocused] = useState(false);
   const observerTarget = useRef(null);
+  const searchInputRef = useRef(null);
   const perPage = 50;
 
   const autoSyncCollection = async () => {
@@ -168,6 +170,13 @@ export default function CollectionGrid() {
     }
   }, [page, loadCollection]);
 
+  // Restore focus to search input after re-renders if it was focused
+  useEffect(() => {
+    if (searchFocused && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [records, loading, loadingMore]);
+
   const handleToggleLike = async (recordId, e) => {
     if (e && e.stopPropagation) e.stopPropagation();
     try {
@@ -219,9 +228,12 @@ export default function CollectionGrid() {
       {/* Search bar - full width on mobile */}
       <div className="w-full">
         <input
+          ref={searchInputRef}
           type="text"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
           placeholder="Search your collection..."
           className="bg-secondary rounded px-4 py-3 md:py-2 text-sm w-full min-h-[44px]"
         />

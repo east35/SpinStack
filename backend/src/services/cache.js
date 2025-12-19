@@ -63,7 +63,7 @@ class CacheService {
     const ttl = this.getSecondsUntilMidnight();
 
     try {
-      await redis.setex(key, ttl, JSON.stringify(albums));
+      await redis.setEx(key, ttl, JSON.stringify(albums));
     } catch (error) {
       console.error('Error caching daily stack:', error);
       // Non-fatal - app can continue without cache
@@ -127,7 +127,7 @@ class CacheService {
     const ttl = this.getSecondsUntilNextMonday();
 
     try {
-      await redis.setex(key, ttl, JSON.stringify(stacks));
+      await redis.setEx(key, ttl, JSON.stringify(stacks));
     } catch (error) {
       console.error('Error caching weekly stacks:', error);
       // Non-fatal - app can continue without cache
