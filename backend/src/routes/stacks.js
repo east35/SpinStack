@@ -185,8 +185,9 @@ function getUniqueAlbums(rows) {
 // Helper function to generate weekly stacks
 async function generateWeeklyStacks(userId, weekStartDate) {
   const stacks = [];
+  const genreStacks = [];
 
-  const fetchStack = async (id, name, whereClause, orderClause = 'ORDER BY RANDOM()', limit = 16, extraParams = []) => {
+  const fetchStack = async (id, name, whereClause, orderClause = 'ORDER BY RANDOM()', limit = 16, extraParams = [], targetArray = stacks) => {
     const result = await db.query(
       `SELECT id, discogs_release_id, title, artist, album_art_url, year, genres
        FROM vinyl_records
@@ -197,32 +198,15 @@ async function generateWeeklyStacks(userId, weekStartDate) {
     );
     const albums = getUniqueAlbums(result.rows).slice(0, 8);
     if (albums.length >= 4) {
-      stacks.push({ id, name, albums });
+      targetArray.push({ id, name, albums });
     }
   };
 
-  // Top genres (up to 4)
-  const genresResult = await db.query(
-    `SELECT unnest(genres) as genre, COUNT(*) as count
-     FROM vinyl_records
-     WHERE user_id = $1 AND genres IS NOT NULL AND array_length(genres, 1) > 0
-     GROUP BY genre
-     ORDER BY count DESC
-     LIMIT 4`,
-    [userId]
-  );
+  // 1. First: Style-based stacks (cross-genre mood clusters) - up to 8
+  const styleStacks = await generateStyleStacks(userId);
+  stacks.push(...styleStacks.slice(0, 8));
 
-  for (const { genre } of genresResult.rows) {
-    await fetchStack(
-      `genre-${genre.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
-      `Genre: ${genre}`,
-      'AND $2 = ANY(genres)',
-      'ORDER BY RANDOM()',
-      24,
-      [genre]
-    );
-  }
-
+  // 2. Curated stacks (behavior-based)
   // Recent additions (last 90 days)
   await fetchStack(
     'recent-additions',
@@ -255,6 +239,14 @@ async function generateWeeklyStacks(userId, weekStartDate) {
     'ORDER BY year ASC NULLS LAST'
   );
 
+  // 90s
+  await fetchStack(
+    'nineties',
+    '90s',
+    'AND year IS NOT NULL AND year >= 1990 AND year < 2000',
+    'ORDER BY RANDOM()'
+  );
+
   // 2000s+
   await fetchStack(
     'modern',
@@ -271,9 +263,31 @@ async function generateWeeklyStacks(userId, weekStartDate) {
     'ORDER BY RANDOM()'
   );
 
-  // Add style-based stacks (cross-genre mood clusters)
-  const styleStacks = await generateStyleStacks(userId);
-  stacks.push(...styleStacks);
+  // 3. Last: Genre stacks (up to 4)
+  const genresResult = await db.query(
+    `SELECT unnest(genres) as genre, COUNT(*) as count
+     FROM vinyl_records
+     WHERE user_id = $1 AND genres IS NOT NULL AND array_length(genres, 1) > 0
+     GROUP BY genre
+     ORDER BY count DESC
+     LIMIT 4`,
+    [userId]
+  );
+
+  for (const { genre } of genresResult.rows) {
+    await fetchStack(
+      `genre-${genre.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+      `Genre: ${genre}`,
+      'AND $2 = ANY(genres)',
+      'ORDER BY RANDOM()',
+      24,
+      [genre],
+      genreStacks
+    );
+  }
+
+  // Add genre stacks at the end
+  stacks.push(...genreStacks);
 
   // Fallback: random mixes if none found yet
   if (stacks.length === 0) {
@@ -291,7 +305,8 @@ async function generateWeeklyStacks(userId, weekStartDate) {
     }
   }
 
-  return stacks;
+  // Limit to 16 stacks total
+  return stacks.slice(0, 16);
 }
 
 // Get weekly stacks - persistent for 7 days (renamed from /random)
