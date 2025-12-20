@@ -1,0 +1,21 @@
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  # Next.js will be built in standalone mode for better performance
+  NEXT_TELEMETRY_DISABLED = "1"
+
+# Redirect all requests to Next.js for handling
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/nextServer/:splat"
+  status = 200
+
+[functions]
+  # Extend function timeout for slower connections
+  timeout = 30

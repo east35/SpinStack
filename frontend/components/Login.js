@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { auth } from '../lib/api';
+import { enableDemoMode } from '../lib/demoApi';
+import RoadmapModal from './RoadmapModal';
 import axios from 'axios';
 
 export default function Login({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [showRoadmap, setShowRoadmap] = useState(false);
 
   const handleLogin = async () => {
     try {
@@ -22,6 +25,11 @@ export default function Login({ onLogin }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDemoMode = () => {
+    enableDemoMode();
+    onLogin(); // Trigger re-check which will now use demo mode
   };
 
   const handleCSVUpload = async (event) => {
@@ -77,32 +85,33 @@ export default function Login({ onLogin }) {
             <div className="w-full border-t border-gray-700"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-black text-gray-400">Or import from CSV</span>
+            <span className="px-2 bg-black text-gray-400">Or try the demo</span>
           </div>
         </div>
 
         <div className="mt-6">
-          <label className="block">
-            <input
-              type="file"
-              accept=".csv"
-              onChange={handleCSVUpload}
-              disabled={importing}
-              className="hidden"
-              id="csv-upload"
-            />
-            <label
-              htmlFor="csv-upload"
-              className="btn-secondary cursor-pointer inline-block w-full disabled:opacity-50"
-            >
-              {importing ? 'Importing...' : 'Upload CSV File'}
-            </label>
-          </label>
+          <button
+            onClick={handleDemoMode}
+            className="btn-secondary w-full"
+          >
+            Explore Demo
+          </button>
           <p className="text-xs text-gray-500 mt-3">
-            CSV format: artist, title, year, label, catalog_number, format, genres
+            Experience SpinStack with a sample collection. No login required.
           </p>
         </div>
+
+        <div className="mt-8 pt-6 border-t border-gray-800">
+          <button
+            onClick={() => setShowRoadmap(true)}
+            className="text-sm text-gray-400 hover:text-white transition"
+          >
+            View Roadmap →
+          </button>
+        </div>
       </div>
+
+      {showRoadmap && <RoadmapModal onClose={() => setShowRoadmap(false)} />}
     </div>
   );
 }

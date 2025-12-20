@@ -1,11 +1,28 @@
 import axios from 'axios';
+import { isDemoMode, demoAuth, demoCollection, demoStacks, demoStats, demoPlaylists } from './demoApi';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
   withCredentials: true,
 });
 
-export const auth = {
+/**
+ * Wrapper to use demo API when in demo mode
+ */
+function wrapApi(realApi, demoApi) {
+  const wrapped = {};
+  Object.keys(realApi).forEach(key => {
+    wrapped[key] = (...args) => {
+      if (isDemoMode()) {
+        return demoApi[key](...args);
+      }
+      return realApi[key](...args);
+    };
+  });
+  return wrapped;
+}
+
+const realAuth = {
   login: () => api.get('/api/auth/login'),
   callback: (oauthVerifier, state) => api.post('/api/auth/callback', { oauth_verifier: oauthVerifier, state }),
   me: () => api.get('/api/auth/me'),
@@ -13,7 +30,7 @@ export const auth = {
   updatePreferences: (data) => api.patch('/api/auth/preferences', data),
 };
 
-export const collection = {
+const realCollection = {
   sync: () => api.post('/api/collection/sync'),
   getAll: (params) => api.get('/api/collection', { params }),
   getStats: () => api.get('/api/collection/stats'),
@@ -22,7 +39,7 @@ export const collection = {
   toggleLike: (id) => api.post(`/api/collection/${id}/like`),
 };
 
-export const stacks = {
+const realStacks = {
   getDaily: () => api.get('/api/stacks/daily'),
   getWeekly: () => api.get('/api/stacks/weekly'),
   getStyles: () => api.get('/api/stacks/styles'),
@@ -32,15 +49,22 @@ export const stacks = {
   markPlayed: (data) => api.post('/api/stacks/mark-played', data),
 };
 
-export const stats = {
+const realStats = {
   get: () => api.get('/api/stats'),
 };
 
-export const playlists = {
+const realPlaylists = {
   generate: (data) => api.post('/api/playlists/generate', data),
   getAll: () => api.get('/api/playlists'),
   getById: (id) => api.get(`/api/playlists/${id}`),
   delete: (id) => api.delete(`/api/playlists/${id}`),
 };
+
+// Export wrapped APIs that automatically use demo mode when enabled
+export const auth = wrapApi(realAuth, demoAuth);
+export const collection = wrapApi(realCollection, demoCollection);
+export const stacks = wrapApi(realStacks, demoStacks);
+export const stats = wrapApi(realStats, demoStats);
+export const playlists = wrapApi(realPlaylists, demoPlaylists);
 
 export default api;
