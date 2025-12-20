@@ -86,7 +86,7 @@ async function exportMockData() {
 
     console.log(`✅ Stats calculated\n`);
 
-    // Generate mock stacks (simplified version)
+    // Generate mock stacks
     console.log('🎲 Generating mock stacks...');
 
     // Daily stack - random 8 albums
@@ -94,11 +94,11 @@ async function exportMockData() {
       .sort(() => Math.random() - 0.5)
       .slice(0, 8);
 
-    // Weekly stacks - genre-based and curated
+    // Weekly stacks - aim for 16 total
     const weeklyStacks = [];
 
-    // Get top genres for stacks
-    const topGenres = genresResult.rows.slice(0, 4);
+    // 1. Genre stacks (top 8 genres)
+    const topGenres = genresResult.rows.slice(0, 8);
     for (const { genre } of topGenres) {
       const genreRecords = records
         .filter(r => r.genres && r.genres.includes(genre))
@@ -108,13 +108,14 @@ async function exportMockData() {
       if (genreRecords.length >= 4) {
         weeklyStacks.push({
           id: `genre-${genre.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
-          name: `Genre: ${genre}`,
+          name: `${genre}`,
           albums: genreRecords
         });
       }
     }
 
-    // Add curated stacks
+    // 2. Curated stacks
+    // Recent additions
     const recentRecords = records.slice(0, 8);
     if (recentRecords.length >= 4) {
       weeklyStacks.push({
@@ -124,15 +125,56 @@ async function exportMockData() {
       });
     }
 
-    // Random mix
-    const randomRecords = records
+    // Vintage finds (older records)
+    const vintageRecords = records
+      .filter(r => r.year && r.year < 1990)
       .sort(() => Math.random() - 0.5)
       .slice(0, 8);
-    weeklyStacks.push({
-      id: 'random-mix',
-      name: 'Random Mix',
-      albums: randomRecords
-    });
+    if (vintageRecords.length >= 4) {
+      weeklyStacks.push({
+        id: 'vintage',
+        name: 'Vintage Finds',
+        albums: vintageRecords
+      });
+    }
+
+    // 90s classics
+    const ninetiesRecords = records
+      .filter(r => r.year && r.year >= 1990 && r.year < 2000)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 8);
+    if (ninetiesRecords.length >= 4) {
+      weeklyStacks.push({
+        id: 'nineties',
+        name: '90s Classics',
+        albums: ninetiesRecords
+      });
+    }
+
+    // Modern mix (2000+)
+    const modernRecords = records
+      .filter(r => r.year && r.year >= 2000)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 8);
+    if (modernRecords.length >= 4) {
+      weeklyStacks.push({
+        id: 'modern',
+        name: 'Modern Mix',
+        albums: modernRecords
+      });
+    }
+
+    // Random mixes to fill up to 16
+    while (weeklyStacks.length < 16 && records.length >= 4) {
+      const randomRecords = records
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 8);
+      weeklyStacks.push({
+        id: `random-mix-${weeklyStacks.length}`,
+        name: `Discover Mix ${weeklyStacks.length - 10}`,
+        albums: randomRecords
+      });
+    }
 
     console.log(`✅ Generated ${weeklyStacks.length} weekly stacks\n`);
 
