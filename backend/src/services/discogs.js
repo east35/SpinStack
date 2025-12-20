@@ -3,10 +3,19 @@ const axios = require('axios');
 
 class DiscogsService {
   constructor() {
-    this.consumerKey = process.env.DISCOGS_CONSUMER_KEY;
-    this.consumerSecret = process.env.DISCOGS_CONSUMER_SECRET;
-    this.userAgent =
-      process.env.DISCOGS_USER_AGENT ||
+    // Don't load env vars in constructor - they might not be loaded yet
+  }
+
+  get consumerKey() {
+    return process.env.DISCOGS_CONSUMER_KEY;
+  }
+
+  get consumerSecret() {
+    return process.env.DISCOGS_CONSUMER_SECRET;
+  }
+
+  get userAgent() {
+    return process.env.DISCOGS_USER_AGENT ||
       'VinylApp/1.0 (+https://github.com/your-org/vinylapp)';
   }
 

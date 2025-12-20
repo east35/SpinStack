@@ -21,7 +21,7 @@ router.get('/login', async (req, res) => {
 
     // Generate a unique state key for this OAuth flow
     const stateKey = crypto.randomBytes(32).toString('hex');
-    
+
     // Store OAuth tokens in Redis with the state key (expires in 10 minutes)
     if (redisClient) {
       await redisClient.setEx(`oauth:${stateKey}`, 600, JSON.stringify({

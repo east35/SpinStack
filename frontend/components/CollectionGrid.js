@@ -304,7 +304,7 @@ export default function CollectionGrid() {
                   )}
 
                   {/* Hover overlay with action buttons */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                  <div className="inset-0 bg-black/60 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                     <button
                       onClick={(e) => handleToggleLike(record.id, e)}
                       className="w-12 h-12 rounded-full bg-white/90 hover:bg-white flex items-center justify-center transition-all hover:scale-110 active:scale-95"
