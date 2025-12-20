@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Icon from './Icon';
 
 // Genre color mapping - consistent colors for each genre
@@ -25,24 +25,40 @@ const getGenreColor = (genre) => {
 };
 
 export default function AlbumDetailModal({ album, onClose, onToggleLike, onMarkPlayed }) {
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+    }, 200); // Match fadeOut animation duration
+  };
+
   // Close on escape key
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') handleClose();
     };
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
+  }, []);
+
+  // Reset closing state when album changes
+  useEffect(() => {
+    if (album) {
+      setIsClosing(false);
+    }
+  }, [album]);
 
   if (!album) return null;
 
   return (
     <div
-      className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 animate-fadeIn"
-      onClick={onClose}
+      className={`fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 !m-0 ${isClosing ? 'animate-fadeOut' : 'animate-fadeIn'}`}
+      onClick={handleClose}
     >
       <div
-        className="bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+        className={`bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto ${isClosing ? 'animate-fadeOut' : 'animate-fadeIn'}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex flex-col md:flex-row gap-6 p-6">
@@ -93,7 +109,7 @@ export default function AlbumDetailModal({ album, onClose, onToggleLike, onMarkP
                 <p className="text-lg text-gray-400 mb-1">{album.artist}</p>
               </div>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="text-gray-400 hover:text-white transition-colors p-2 min-h-[44px] min-w-[44px]"
                 title="Close"
               >

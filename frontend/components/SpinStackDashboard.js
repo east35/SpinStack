@@ -13,7 +13,7 @@ export default function SpinStackDashboard({ user, onLogout }) {
 
   return (
     <div className="min-h-screen bg-black text-white text-lg">
-      <TopNav user={user} onLogout={onLogout} currentView={currentView} />
+      <TopNav user={user} onLogout={onLogout} currentView={currentView} onNavigate={handleViewChange} />
 
       <div>
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -53,20 +53,14 @@ export default function SpinStackDashboard({ user, onLogout }) {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className={`transition-opacity duration-300 ${currentView === 'stacks' ? 'opacity-100' : 'opacity-0 hidden'}`}>
-          {currentView === 'stacks' && (
-            <StacksView />
-          )}
+        <div className={currentView === 'stacks' ? '' : 'hidden'}>
+          <StacksView />
         </div>
-        <div className={`transition-opacity duration-300 ${currentView === 'collection' ? 'opacity-100' : 'opacity-0 hidden'}`}>
-          {currentView === 'collection' && (
-            <CollectionView />
-          )}
+        <div className={currentView === 'collection' ? '' : 'hidden'}>
+          <CollectionView />
         </div>
-        <div className={`transition-opacity duration-300 ${currentView === 'stats' ? 'opacity-100' : 'opacity-0 hidden'}`}>
-          {currentView === 'stats' && (
-            <StatsView />
-          )}
+        <div className={currentView === 'stats' ? '' : 'hidden'}>
+          <StatsView />
         </div>
       </div>
     </div>

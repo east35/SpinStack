@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { auth, collection } from '../lib/api';
 import Icon from './Icon';
 
-export default function TopNav({ user, onLogout, currentView }) {
+export default function TopNav({ user, onLogout, currentView, onNavigate }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
@@ -37,11 +37,17 @@ export default function TopNav({ user, onLogout, currentView }) {
   return (
     <nav className="bg-black px-4 py-3">
       <div className="mx-auto flex items-center justify-between">
-        <img
-          src="/icons/SpinStack Logo.svg"
-          alt="SpinStack"
-          className="h-[18px]"
-        />
+        <button
+          onClick={() => onNavigate && onNavigate('stacks')}
+          className="transition-opacity hover:opacity-80 cursor-pointer"
+          aria-label="Go to Stacks"
+        >
+          <img
+            src="/icons/SpinStack Logo.svg"
+            alt="SpinStack"
+            className="h-[18px]"
+          />
+        </button>
 
         <div className="relative">
           <button

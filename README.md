@@ -19,11 +19,12 @@ A Spotify/Tidal-inspired web app for your physical vinyl collection. Generate pl
 
 - **Backend**: Node.js, Express, PostgreSQL, Redis
 - **Frontend**: Next.js 14, React, Tailwind CSS
-- **Infrastructure**: Docker Compose
 
 ## Prerequisites
 
-- Docker and Docker Compose installed
+- Node.js 18+ and npm
+- PostgreSQL 14+
+- Redis 6+
 - Discogs account with API credentials
 
 ## Setup Instructions
@@ -38,21 +39,35 @@ A Spotify/Tidal-inspired web app for your physical vinyl collection. Generate pl
    - **Callback URL**: http://localhost:3000/auth/callback
 4. Save the **Consumer Key** and **Consumer Secret**
 
-### 2. Configure Environment Variables
+### 2. Set Up PostgreSQL Database
 
-```bash
-cp .env.example .env
+Create the database and user:
+
+```sql
+CREATE DATABASE vinyl_collection;
+CREATE USER vinyl_user WITH PASSWORD 'vinyl_pass';
+GRANT ALL PRIVILEGES ON DATABASE vinyl_collection TO vinyl_user;
 ```
 
-Edit `.env` and add your Discogs credentials and URLs:
+### 3. Configure Environment Variables
+
+Create `backend/.env`:
 
 ```env
 DISCOGS_CONSUMER_KEY=your_consumer_key_here
 DISCOGS_CONSUMER_SECRET=your_consumer_secret_here
-FRONTEND_URL=http://localhost:3000
-NEXT_PUBLIC_API_URL=http://localhost:3001
 SESSION_SECRET=generate-a-random-string-here
-DISCOGS_USER_AGENT=VinylApp/1.0 (+https://your-site-or-email.example)
+NODE_ENV=development
+PORT=3001
+DATABASE_URL=postgresql://vinyl_user:vinyl_pass@localhost:5432/vinyl_collection
+REDIS_URL=redis://localhost:6379
+FRONTEND_URL=http://localhost:3000
+```
+
+Create `frontend/.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001
 ```
 
 To generate a secure session secret:
@@ -60,29 +75,44 @@ To generate a secure session secret:
 openssl rand -base64 32
 ```
 
-### 3. Start the Application
+### 4. Install Dependencies
 
+Backend:
 ```bash
-docker-compose up --build
+cd backend
+npm install
 ```
 
-This will:
-- Start PostgreSQL database on port 5432
-- Start Redis on port 6379
-- Start the backend API on port 3001
-- Start the frontend on port 3000
-
-### 4. Run Database Migrations
-
-In a new terminal, run:
-
+Frontend:
 ```bash
-docker exec -it vinyl-backend npm run migrate
+cd frontend
+npm install
 ```
 
-### 5. Access the Application
+### 5. Run Database Migrations
 
-Open your browser to [http://localhost:3000](http://localhost:3000)
+```bash
+cd backend
+npm run migrate
+```
+
+### 6. Start the Application
+
+In one terminal, start the backend:
+```bash
+cd backend
+npm run dev
+```
+
+In another terminal, start the frontend:
+```bash
+cd frontend
+npm run dev
+```
+
+The app will be available at:
+- Frontend: [http://localhost:3000](http://localhost:3000)
+- Backend API: [http://localhost:3001](http://localhost:3001)
 
 ## Usage
 
@@ -108,40 +138,16 @@ Open your browser to [http://localhost:3000](http://localhost:3000)
 
 ## Development
 
-### Backend Development
-
-```bash
-cd backend
-npm install
-npm run dev  # runs on http://localhost:3201
-```
-
-### Frontend Development
-
-```bash
-cd frontend
-npm install
-npm run dev  # runs on http://localhost:3202
-```
-> Make sure backend and frontend use different ports. Backend expects `FRONTEND_URL=http://<host>:3202` and frontend should call the API at `http://<host>:3201`.
-
 ### Database Access
 
 Connect to PostgreSQL:
 ```bash
-docker exec -it vinyl-db psql -U vinyl_user -d vinyl_collection
+psql -U vinyl_user -d vinyl_collection
 ```
 
 ### View Logs
 
-```bash
-# All services
-docker-compose logs -f
-
-# Specific service
-docker-compose logs -f backend
-docker-compose logs -f frontend
-```
+Backend and frontend logs will appear in their respective terminal windows.
 
 ## API Endpoints
 
@@ -168,42 +174,34 @@ docker-compose logs -f frontend
 ### OAuth Issues
 
 If you get OAuth errors:
-1. Verify your Discogs API credentials in `.env`
+1. Verify your Discogs API credentials in `backend/.env`
 2. Make sure the callback URL in Discogs settings matches `http://localhost:3000/auth/callback`
 3. Check that cookies are enabled in your browser
-4. Confirm PostgreSQL is reachable and `DATABASE_URL` matches the database name (default: `vinyl_collection`). With Docker Compose this is set for you, but a mismatched DB name will surface as OAuth callback failures in the backend logs.
+4. Confirm PostgreSQL is reachable and `DATABASE_URL` matches the database name (default: `vinyl_collection`)
+5. Ensure Redis is running (`redis-server`)
 
 ### Collection Not Syncing
 
-1. Check backend logs: `docker-compose logs backend`
+1. Check backend terminal for error logs
 2. Verify you've authorized the app correctly
 3. Ensure your Discogs collection is public
 
 ### Database Connection Issues
 
+1. Make sure PostgreSQL is running
+2. Verify credentials in `backend/.env` match your database setup
+3. Test connection: `psql -U vinyl_user -d vinyl_collection`
+
+### Port Already in Use
+
+If you get "port already in use" errors:
 ```bash
-# Restart database
-docker-compose restart postgres
+# Find and kill process on port 3000 (frontend)
+lsof -ti:3000 | xargs kill -9
 
-# Check database is healthy
-docker-compose ps
+# Find and kill process on port 3001 (backend)
+lsof -ti:3001 | xargs kill -9
 ```
-
-## Deployment to NAS
-
-The application is designed to run on your NAS via Docker Compose:
-
-1. Copy the entire project to your NAS
-2. Update `.env` with your credentials
-3. Run `docker-compose up -d` to start in detached mode
-4. Access via your NAS IP: `http://YOUR_NAS_IP:3000`
-
-### Production Considerations
-
-- Update `SESSION_SECRET` to a strong random value
-- Consider using HTTPS with a reverse proxy (nginx/Caddy)
-- Set up regular backups of the PostgreSQL volume
-- Adjust `docker-compose.yml` to remove dev-specific volume mounts
 
 ## Future Enhancements
 

@@ -32,6 +32,29 @@ router.post('/sync', requireAuth, async (req, res) => {
 
     console.log(`Found ${releases.length} releases`);
 
+    // Get current Discogs instance IDs
+    const discogsInstanceIds = releases.map(r => r.instance_id);
+
+    // Delete records that are no longer in Discogs collection
+    let deletedCount = 0;
+    if (discogsInstanceIds.length > 0) {
+      const deleteResult = await db.query(
+        `DELETE FROM vinyl_records
+         WHERE user_id = $1 AND discogs_instance_id NOT IN (${discogsInstanceIds.map((_, i) => `$${i + 2}`).join(',')})`,
+        [userId, ...discogsInstanceIds]
+      );
+      deletedCount = deleteResult.rowCount;
+      console.log(`Deleted ${deletedCount} records no longer in Discogs collection`);
+    } else {
+      // If no releases from Discogs, delete all user records
+      const deleteResult = await db.query(
+        'DELETE FROM vinyl_records WHERE user_id = $1',
+        [userId]
+      );
+      deletedCount = deleteResult.rowCount;
+      console.log(`Deleted all ${deletedCount} records (Discogs collection is empty)`);
+    }
+
     // Insert or update records in database
     let syncedCount = 0;
     for (const release of releases) {
@@ -79,6 +102,7 @@ router.post('/sync', requireAuth, async (req, res) => {
     res.json({
       success: true,
       synced: syncedCount,
+      deleted: deletedCount,
       total: releases.length,
     });
   } catch (error) {
