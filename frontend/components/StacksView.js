@@ -8,6 +8,7 @@ export default function StacksView() {
   const [curatedStacks, setCuratedStacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeStack, setActiveStack] = useState(null);
+  const [imageLoadingStates, setImageLoadingStates] = useState({});
 
   // Helper function to get unique artists from a stack
   const getArtistSubtitle = (albums) => {
@@ -101,12 +102,23 @@ export default function StacksView() {
             <div className="order-2">
               <div className="grid grid-cols-4 gap-2 md:gap-1 max-w-full md:w-[420px] mx-auto md:mx-0">
                 {dailyStack.albums.map((album, idx) => (
-                  <img
-                    key={idx}
-                    src={album.album_art_url || '/placeholder-album.png'}
-                    alt={album.title}
-                    className="w-full aspect-square rounded-md md:rounded-sm object-cover"
-                  />
+                  <div key={idx} className="relative w-full aspect-square rounded-md md:rounded-sm overflow-hidden bg-gray-800">
+                    {imageLoadingStates[`daily-${idx}`] !== 'loaded' && imageLoadingStates[`daily-${idx}`] !== 'error' && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-gray-800 animate-pulse">
+                        <div className="w-8 h-8 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
+                      </div>
+                    )}
+                    <img
+                      src={album.album_art_url || '/placeholder-album.png'}
+                      alt={album.title}
+                      loading="lazy"
+                      onLoad={() => setImageLoadingStates(prev => ({ ...prev, [`daily-${idx}`]: 'loaded' }))}
+                      onError={() => setImageLoadingStates(prev => ({ ...prev, [`daily-${idx}`]: 'error' }))}
+                      className={`w-full aspect-square rounded-md md:rounded-sm object-cover transition-opacity duration-200 ${
+                        imageLoadingStates[`daily-${idx}`] === 'loaded' ? 'opacity-100' : 'opacity-0'
+                      }`}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
@@ -161,13 +173,24 @@ export default function StacksView() {
                 <div className="relative overflow-hidden rounded-md">
                   <div className="grid grid-cols-2 gap-1 transition-opacity duration-200 md:group-hover:opacity-70">
                     {stack.albums.slice(0, 4).map((album, idx) => (
-                      <img
-                            key={`${stack.id}-${idx}`}
-                            src={album.album_art_url || '/placeholder-album.png'}
-                            alt={album.title}
-                            className="w-full aspect-square rounded-sm object-cover"
-                          />
-                        ))}
+                      <div key={`${stack.id}-${idx}`} className="relative w-full aspect-square bg-gray-800 rounded-sm overflow-hidden">
+                        {imageLoadingStates[`${stack.id}-${idx}`] !== 'loaded' && imageLoadingStates[`${stack.id}-${idx}`] !== 'error' && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-gray-800 animate-pulse">
+                            <div className="w-6 h-6 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
+                          </div>
+                        )}
+                        <img
+                          src={album.album_art_url || '/placeholder-album.png'}
+                          alt={album.title}
+                          loading="lazy"
+                          onLoad={() => setImageLoadingStates(prev => ({ ...prev, [`${stack.id}-${idx}`]: 'loaded' }))}
+                          onError={() => setImageLoadingStates(prev => ({ ...prev, [`${stack.id}-${idx}`]: 'error' }))}
+                          className={`w-full aspect-square rounded-sm object-cover transition-opacity duration-200 ${
+                            imageLoadingStates[`${stack.id}-${idx}`] === 'loaded' ? 'opacity-100' : 'opacity-0'
+                          }`}
+                        />
+                      </div>
+                    ))}
                   </div>
                   <div className="absolute inset-0 bg-black/60 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <div className="flex items-center gap-2 px-4 py-2 bg-white text-black text-xs md:text-sm font-semibold rounded-full shadow-lg">

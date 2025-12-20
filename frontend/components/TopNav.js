@@ -115,7 +115,7 @@ export default function TopNav({ user, onLogout, currentView, onNavigate }) {
                 )}
                 <button
                   onClick={() => {
-                    const shareUrl = 'https://spinstack.app';
+                    const shareUrl = typeof window !== 'undefined' ? window.location.origin : 'https://spinstack.app';
                     const shareText = 'Check out SpinStack - Discover your vinyl collection in a whole new way!';
                     if (navigator.share) {
                       navigator.share({ title: 'SpinStack', text: shareText, url: shareUrl }).catch(() => {});

@@ -104,7 +104,17 @@ class MockDataService {
 
     // Apply filters
     if (genre) {
-      records = records.filter(r => r.genres && r.genres.includes(genre));
+      // Since our mock data doesn't have genre arrays populated,
+      // we simulate genre filtering by using a deterministic subset based on genre name
+      // This ensures the same genre always returns the same albums
+      const genreHash = genre.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      const genreSubsetSize = Math.floor(this.data.collection.length * 0.25); // ~25% of collection per genre
+
+      records = records.filter((r, idx) => {
+        // Use a deterministic formula based on genre hash and record index
+        // This ensures each genre gets a consistent subset of albums
+        return (idx + genreHash) % 4 === genreHash % 4;
+      });
     }
 
     if (search) {
@@ -175,6 +185,14 @@ class MockDataService {
    * Get available genres
    */
   getGenres() {
+    // Since our mock data doesn't have genre arrays populated,
+    // return the genres from stats that we've manually defined
+    if (this.data.stats && this.data.stats.topGenres) {
+      return {
+        genres: this.data.stats.topGenres.map(g => g.genre).sort()
+      };
+    }
+
     const genresSet = new Set();
     this.data.collection.forEach(record => {
       if (record.genres) {

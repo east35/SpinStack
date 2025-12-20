@@ -14,6 +14,7 @@ export default function StatsView() {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
+  const [imageLoadingStates, setImageLoadingStates] = useState({});
   const observerTarget = useRef(null);
   const perPage = 50;
 
@@ -185,11 +186,29 @@ export default function StatsView() {
                     onClick={() => setSelectedAlbum(record)}
                   >
                     {record.album_art_url ? (
-                      <img
-                        src={record.album_art_url}
-                        alt={record.title}
-                        className="w-full h-full object-cover transition-opacity duration-200 md:group-hover:opacity-70"
-                      />
+                      <>
+                        {imageLoadingStates[record.id] !== 'loaded' && imageLoadingStates[record.id] !== 'error' && (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-800 animate-pulse">
+                            <div className="w-12 h-12 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
+                          </div>
+                        )}
+                        <img
+                          src={record.album_art_url}
+                          alt={record.title}
+                          loading="lazy"
+                          onLoad={() => setImageLoadingStates(prev => ({ ...prev, [record.id]: 'loaded' }))}
+                          onError={() => setImageLoadingStates(prev => ({ ...prev, [record.id]: 'error' }))}
+                          className={`w-full h-full object-cover transition-opacity duration-200 md:group-hover:opacity-70 ${
+                            imageLoadingStates[record.id] === 'loaded' ? 'opacity-100' : 'opacity-0'
+                          }`}
+                          style={{ display: imageLoadingStates[record.id] === 'error' ? 'none' : 'block' }}
+                        />
+                        {imageLoadingStates[record.id] === 'error' && (
+                          <div className="w-full h-full flex items-center justify-center text-gray-600 bg-gray-800">
+                            No Image
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-600">
                         No Image
@@ -352,10 +371,20 @@ export default function StatsView() {
             {stats.mostPlayed.map((record) => (
               <div key={record.id} className="bg-gray-900 rounded-lg overflow-hidden group">
                 <div className="relative aspect-square cursor-pointer" onClick={() => setSelectedAlbum(record)}>
+                  {imageLoadingStates[record.id] !== 'loaded' && imageLoadingStates[record.id] !== 'error' && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-800 animate-pulse">
+                      <div className="w-12 h-12 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
+                    </div>
+                  )}
                   <img
                     src={record.album_art_url || '/placeholder-album.png'}
                     alt={record.title}
-                    className="w-full h-full object-cover transition-opacity duration-200 md:group-hover:opacity-70"
+                    loading="lazy"
+                    onLoad={() => setImageLoadingStates(prev => ({ ...prev, [record.id]: 'loaded' }))}
+                    onError={() => setImageLoadingStates(prev => ({ ...prev, [record.id]: 'error' }))}
+                    className={`w-full h-full object-cover transition-opacity duration-200 md:group-hover:opacity-70 ${
+                      imageLoadingStates[record.id] === 'loaded' ? 'opacity-100' : 'opacity-0'
+                    }`}
                   />
                   {/* Hover overlay with action buttons */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
@@ -416,10 +445,20 @@ export default function StatsView() {
             {stats.dustyGems.map((record) => (
               <div key={record.id} className="bg-gray-900 rounded-lg overflow-hidden group">
                 <div className="relative aspect-square cursor-pointer" onClick={() => setSelectedAlbum(record)}>
+                  {imageLoadingStates[record.id] !== 'loaded' && imageLoadingStates[record.id] !== 'error' && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gray-800 animate-pulse">
+                      <div className="w-12 h-12 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
+                    </div>
+                  )}
                   <img
                     src={record.album_art_url || '/placeholder-album.png'}
                     alt={record.title}
-                    className="w-full h-full object-cover transition-opacity duration-200 md:group-hover:opacity-70"
+                    loading="lazy"
+                    onLoad={() => setImageLoadingStates(prev => ({ ...prev, [record.id]: 'loaded' }))}
+                    onError={() => setImageLoadingStates(prev => ({ ...prev, [record.id]: 'error' }))}
+                    className={`w-full h-full object-cover transition-opacity duration-200 md:group-hover:opacity-70 ${
+                      imageLoadingStates[record.id] === 'loaded' ? 'opacity-100' : 'opacity-0'
+                    }`}
                   />
                   {/* Hover overlay with action buttons */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">

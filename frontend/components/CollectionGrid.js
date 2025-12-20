@@ -48,6 +48,7 @@ export default function CollectionGrid() {
   const [totalCount, setTotalCount] = useState(0);
   const [autoSyncing, setAutoSyncing] = useState(false);
   const [autoSyncAttempted, setAutoSyncAttempted] = useState(false);
+  const [imageLoadingStates, setImageLoadingStates] = useState({});
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [searchFocused, setSearchFocused] = useState(false);
   const observerTarget = useRef(null);
@@ -294,11 +295,29 @@ export default function CollectionGrid() {
                   onClick={() => setSelectedAlbum(record)}
                 >
                   {record.album_art_url ? (
-                    <img
-                      src={record.album_art_url}
-                      alt={record.title}
-                      className="w-full h-full object-cover transition-opacity duration-200 md:group-hover:opacity-70"
-                    />
+                    <>
+                      {imageLoadingStates[record.id] !== 'loaded' && imageLoadingStates[record.id] !== 'error' && (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-800 animate-pulse">
+                          <div className="w-12 h-12 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
+                        </div>
+                      )}
+                      <img
+                        src={record.album_art_url}
+                        alt={record.title}
+                        loading="lazy"
+                        onLoad={() => setImageLoadingStates(prev => ({ ...prev, [record.id]: 'loaded' }))}
+                        onError={() => setImageLoadingStates(prev => ({ ...prev, [record.id]: 'error' }))}
+                        className={`w-full h-full object-cover transition-opacity duration-200 md:group-hover:opacity-70 ${
+                          imageLoadingStates[record.id] === 'loaded' ? 'opacity-100' : 'opacity-0'
+                        }`}
+                        style={{ display: imageLoadingStates[record.id] === 'error' ? 'none' : 'block' }}
+                      />
+                      {imageLoadingStates[record.id] === 'error' && (
+                        <div className="w-full h-full flex items-center justify-center text-gray-600 bg-gray-800">
+                          No Image
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-600">
                       No Image
