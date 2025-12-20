@@ -36,7 +36,7 @@ Upload the entire SpinStack project to your Synology shared folder using:
    DISCOGS_CONSUMER_KEY=your_actual_key
    DISCOGS_CONSUMER_SECRET=your_actual_secret
    SESSION_SECRET=$(openssl rand -base64 32)
-   FRONTEND_URL=http://YOUR_SYNOLOGY_IP:3000
+   FRONTEND_URL=http://YOUR_SYNOLOGY_IP:3200
    NEXT_PUBLIC_API_URL=http://YOUR_SYNOLOGY_IP:3001
    ```
 
@@ -46,7 +46,7 @@ Upload the entire SpinStack project to your Synology shared folder using:
 
 1. Go to [Discogs Developer Settings](https://www.discogs.com/settings/developers)
 2. Edit your application
-3. Update the **Callback URL** to: `http://YOUR_SYNOLOGY_IP:3000/auth/callback`
+3. Update the **Callback URL** to: `http://YOUR_SYNOLOGY_IP:3200/auth/callback`
 
 ## Deployment Options
 
@@ -95,12 +95,12 @@ The containers will start automatically!
 ## Accessing SpinStack
 
 Once deployed, access your app at:
-- **Frontend:** `http://YOUR_SYNOLOGY_IP:3000`
+- **Frontend:** `http://YOUR_SYNOLOGY_IP:3200`
 - **Backend API:** `http://YOUR_SYNOLOGY_IP:3001`
 
 ## First-Time Setup
 
-1. Open `http://YOUR_SYNOLOGY_IP:3000` in your browser
+1. Open `http://YOUR_SYNOLOGY_IP:3200` in your browser
 2. Click **"Connect with Discogs"**
 3. Authorize the application
 4. You'll be redirected back to SpinStack
@@ -138,7 +138,7 @@ docker-compose down -v
 
 ## Port Configuration
 
-If ports 3000 or 3001 are already in use, edit `docker-compose.yml`:
+If ports 3200 or 3001 are already in use, edit `docker-compose.yml`:
 
 ```yaml
 services:
@@ -148,7 +148,7 @@ services:
 
   frontend:
     ports:
-      - "YOUR_PORT:3000"  # Change YOUR_PORT to desired port
+      - "YOUR_PORT:3000"  # Change YOUR_PORT to desired port (external:internal)
 ```
 
 Remember to update your `.env` file with the new ports!
@@ -197,7 +197,7 @@ cat backup_20231215.sql | docker exec -i spinstack-db psql -U vinyl_user vinyl_c
 
 2. Verify ports aren't already in use:
    ```bash
-   netstat -an | grep 3000
+   netstat -an | grep 3200
    netstat -an | grep 3001
    ```
 
@@ -209,12 +209,12 @@ cat backup_20231215.sql | docker exec -i spinstack-db psql -U vinyl_user vinyl_c
    ```
 
 2. Check Synology firewall settings (DSM → Control Panel → Security → Firewall)
-3. Ensure ports 3000 and 3001 are allowed
+3. Ensure ports 3200 and 3001 are allowed
 
 ### OAuth Callback Error
 
 1. Verify `FRONTEND_URL` in `.env` matches your Synology IP
-2. Verify Discogs callback URL matches exactly: `http://YOUR_IP:3000/auth/callback`
+2. Verify Discogs callback URL matches exactly: `http://YOUR_IP:3200/auth/callback`
 3. Ensure cookies are enabled in your browser
 
 ### Database Connection Issues
