@@ -20,14 +20,36 @@ A Spotify/Tidal-inspired web app for your physical vinyl collection. Generate pl
 - **Backend**: Node.js, Express, PostgreSQL, Redis
 - **Frontend**: Next.js 14, React, Tailwind CSS
 
+## Deployment Options
+
+### 🐳 Docker (Recommended for Synology NAS)
+Perfect for running on Synology Container Manager or any Docker environment.
+
+**See [DEPLOYMENT.md](DEPLOYMENT.md) for full Synology setup guide.**
+
+Quick start:
+```bash
+cp .env.example .env
+# Edit .env with your settings
+docker-compose up -d
+```
+
+### 💻 Local Development
+For development or running without Docker.
+
 ## Prerequisites
 
+### For Docker Deployment
+- Docker and Docker Compose
+- Discogs account with API credentials
+
+### For Local Development
 - Node.js 18+ and npm
 - PostgreSQL 14+
 - Redis 6+
 - Discogs account with API credentials
 
-## Setup Instructions
+## Setup Instructions (Local Development)
 
 ### 1. Get Discogs API Credentials
 
