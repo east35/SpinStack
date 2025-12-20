@@ -18,19 +18,21 @@ async function exportMockData() {
   try {
     console.log('🎵 Exporting collection data for demo site...\n');
 
-    // Get all vinyl records
-    console.log('📀 Fetching vinyl records...');
+    // Get all vinyl records WITH album art only
+    console.log('📀 Fetching vinyl records with album art...');
     const recordsResult = await pool.query(`
       SELECT
-        id, title, artist, year, genres, styles, label,
+        id, discogs_release_id, title, artist, year, genres, styles, label,
         catalog_number, format, album_art_url
       FROM vinyl_records
       WHERE user_id = (SELECT id FROM users LIMIT 1)
+        AND album_art_url IS NOT NULL
+        AND album_art_url != ''
       ORDER BY date_added_to_collection DESC
     `);
 
     const records = recordsResult.rows;
-    console.log(`✅ Found ${records.length} records\n`);
+    console.log(`✅ Found ${records.length} records with album art\n`);
 
     // Calculate stats
     console.log('📊 Calculating stats...');

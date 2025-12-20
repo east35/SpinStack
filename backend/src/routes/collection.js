@@ -4,107 +4,225 @@ const discogsService = require('../services/discogs');
 const db = require('../db');
 const requireAuth = require('../middleware/auth');
 
-// Sync user's Discogs collection
+// Sync user's Discogs collection with progress streaming
 router.post('/sync', requireAuth, async (req, res) => {
   try {
     const userId = req.session.userId;
 
-    // Get user's credentials
-    const userResult = await db.query(
-      'SELECT discogs_username, discogs_access_token, discogs_access_secret FROM users WHERE id = $1',
-      [userId]
-    );
+    // Check if client wants SSE progress updates
+    const wantsProgress = req.headers.accept?.includes('text/event-stream');
 
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    if (wantsProgress) {
+      // Set up SSE
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.flushHeaders();
 
-    const { discogs_username, discogs_access_token, discogs_access_secret } = userResult.rows[0];
+      const sendProgress = (data) => {
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      };
 
-    console.log(`Syncing collection for user: ${discogs_username}`);
+      try {
+        // Get user's credentials
+        const userResult = await db.query(
+          'SELECT discogs_username, discogs_access_token, discogs_access_secret FROM users WHERE id = $1',
+          [userId]
+        );
 
-    // Fetch all releases from Discogs
-    const releases = await discogsService.getAllCollectionReleases(
-      discogs_username,
-      discogs_access_token,
-      discogs_access_secret
-    );
+        if (userResult.rows.length === 0) {
+          sendProgress({ error: 'User not found' });
+          res.end();
+          return;
+        }
 
-    console.log(`Found ${releases.length} releases`);
+        const { discogs_username, discogs_access_token, discogs_access_secret } = userResult.rows[0];
 
-    // Get current Discogs instance IDs
-    const discogsInstanceIds = releases.map(r => r.instance_id);
+        sendProgress({ status: 'fetching', message: 'Fetching your collection from Discogs...' });
 
-    // Delete records that are no longer in Discogs collection
-    let deletedCount = 0;
-    if (discogsInstanceIds.length > 0) {
-      const deleteResult = await db.query(
-        `DELETE FROM vinyl_records
-         WHERE user_id = $1 AND discogs_instance_id NOT IN (${discogsInstanceIds.map((_, i) => `$${i + 2}`).join(',')})`,
-        [userId, ...discogsInstanceIds]
-      );
-      deletedCount = deleteResult.rowCount;
-      console.log(`Deleted ${deletedCount} records no longer in Discogs collection`);
+        // Fetch all releases from Discogs
+        const releases = await discogsService.getAllCollectionReleases(
+          discogs_username,
+          discogs_access_token,
+          discogs_access_secret
+        );
+
+        const totalReleases = releases.length;
+        sendProgress({ status: 'processing', total: totalReleases, current: 0, message: `Found ${totalReleases} releases` });
+
+        // Get current Discogs instance IDs
+        const discogsInstanceIds = releases.map(r => r.instance_id);
+
+        // Delete records that are no longer in Discogs collection
+        let deletedCount = 0;
+        if (discogsInstanceIds.length > 0) {
+          const deleteResult = await db.query(
+            `DELETE FROM vinyl_records
+             WHERE user_id = $1 AND discogs_instance_id NOT IN (${discogsInstanceIds.map((_, i) => `$${i + 2}`).join(',')})`,
+            [userId, ...discogsInstanceIds]
+          );
+          deletedCount = deleteResult.rowCount;
+        } else {
+          const deleteResult = await db.query(
+            'DELETE FROM vinyl_records WHERE user_id = $1',
+            [userId]
+          );
+          deletedCount = deleteResult.rowCount;
+        }
+
+        // Insert or update records in database
+        let syncedCount = 0;
+        for (const release of releases) {
+          const basicInfo = release.basic_information;
+
+          await db.query(
+            `INSERT INTO vinyl_records (
+              user_id, discogs_release_id, discogs_instance_id,
+              title, artist, year, genres, styles, label, catalog_number,
+              format, album_art_url, date_added_to_collection, folder_id, last_synced_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP)
+            ON CONFLICT (user_id, discogs_instance_id)
+            DO UPDATE SET
+              title = $4,
+              artist = $5,
+              year = $6,
+              genres = $7,
+              styles = $8,
+              label = $9,
+              catalog_number = $10,
+              format = $11,
+              album_art_url = $12,
+              last_synced_at = CURRENT_TIMESTAMP`,
+            [
+              userId,
+              basicInfo.id,
+              release.instance_id,
+              basicInfo.title,
+              basicInfo.artists?.[0]?.name || 'Unknown Artist',
+              basicInfo.year || null,
+              basicInfo.genres || [],
+              basicInfo.styles || [],
+              basicInfo.labels?.[0]?.name || null,
+              basicInfo.labels?.[0]?.catno || null,
+              basicInfo.formats?.[0]?.name || null,
+              basicInfo.cover_image || basicInfo.thumb || null,
+              release.date_added,
+              release.folder_id,
+            ]
+          );
+
+          syncedCount++;
+
+          // Send progress update every 10 records
+          if (syncedCount % 10 === 0 || syncedCount === totalReleases) {
+            sendProgress({
+              status: 'syncing',
+              total: totalReleases,
+              current: syncedCount,
+              message: `Synced ${syncedCount} of ${totalReleases} albums`
+            });
+          }
+        }
+
+        sendProgress({
+          status: 'complete',
+          synced: syncedCount,
+          deleted: deletedCount,
+          total: totalReleases
+        });
+        res.end();
+      } catch (error) {
+        console.error('Collection sync error:', error);
+        sendProgress({ status: 'error', error: 'Failed to sync collection' });
+        res.end();
+      }
     } else {
-      // If no releases from Discogs, delete all user records
-      const deleteResult = await db.query(
-        'DELETE FROM vinyl_records WHERE user_id = $1',
+      // Original non-streaming behavior for backwards compatibility
+      const userResult = await db.query(
+        'SELECT discogs_username, discogs_access_token, discogs_access_secret FROM users WHERE id = $1',
         [userId]
       );
-      deletedCount = deleteResult.rowCount;
-      console.log(`Deleted all ${deletedCount} records (Discogs collection is empty)`);
-    }
 
-    // Insert or update records in database
-    let syncedCount = 0;
-    for (const release of releases) {
-      const basicInfo = release.basic_information;
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
 
-      await db.query(
-        `INSERT INTO vinyl_records (
-          user_id, discogs_release_id, discogs_instance_id,
-          title, artist, year, genres, styles, label, catalog_number,
-          format, album_art_url, date_added_to_collection, folder_id, last_synced_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP)
-        ON CONFLICT (user_id, discogs_instance_id)
-        DO UPDATE SET
-          title = $4,
-          artist = $5,
-          year = $6,
-          genres = $7,
-          styles = $8,
-          label = $9,
-          catalog_number = $10,
-          format = $11,
-          album_art_url = $12,
-          last_synced_at = CURRENT_TIMESTAMP`,
-        [
-          userId,
-          basicInfo.id,
-          release.instance_id,
-          basicInfo.title,
-          basicInfo.artists?.[0]?.name || 'Unknown Artist',
-          basicInfo.year || null,
-          basicInfo.genres || [],
-          basicInfo.styles || [],
-          basicInfo.labels?.[0]?.name || null,
-          basicInfo.labels?.[0]?.catno || null,
-          basicInfo.formats?.[0]?.name || null,
-          basicInfo.cover_image || basicInfo.thumb || null,
-          release.date_added,
-          release.folder_id,
-        ]
+      const { discogs_username, discogs_access_token, discogs_access_secret } = userResult.rows[0];
+
+      const releases = await discogsService.getAllCollectionReleases(
+        discogs_username,
+        discogs_access_token,
+        discogs_access_secret
       );
 
-      syncedCount++;
-    }
+      const discogsInstanceIds = releases.map(r => r.instance_id);
 
-    res.json({
-      success: true,
-      synced: syncedCount,
-      deleted: deletedCount,
-      total: releases.length,
-    });
+      let deletedCount = 0;
+      if (discogsInstanceIds.length > 0) {
+        const deleteResult = await db.query(
+          `DELETE FROM vinyl_records
+           WHERE user_id = $1 AND discogs_instance_id NOT IN (${discogsInstanceIds.map((_, i) => `$${i + 2}`).join(',')})`,
+          [userId, ...discogsInstanceIds]
+        );
+        deletedCount = deleteResult.rowCount;
+      } else {
+        const deleteResult = await db.query(
+          'DELETE FROM vinyl_records WHERE user_id = $1',
+          [userId]
+        );
+        deletedCount = deleteResult.rowCount;
+      }
+
+      let syncedCount = 0;
+      for (const release of releases) {
+        const basicInfo = release.basic_information;
+
+        await db.query(
+          `INSERT INTO vinyl_records (
+            user_id, discogs_release_id, discogs_instance_id,
+            title, artist, year, genres, styles, label, catalog_number,
+            format, album_art_url, date_added_to_collection, folder_id, last_synced_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP)
+          ON CONFLICT (user_id, discogs_instance_id)
+          DO UPDATE SET
+            title = $4,
+            artist = $5,
+            year = $6,
+            genres = $7,
+            styles = $8,
+            label = $9,
+            catalog_number = $10,
+            format = $11,
+            album_art_url = $12,
+            last_synced_at = CURRENT_TIMESTAMP`,
+          [
+            userId,
+            basicInfo.id,
+            release.instance_id,
+            basicInfo.title,
+            basicInfo.artists?.[0]?.name || 'Unknown Artist',
+            basicInfo.year || null,
+            basicInfo.genres || [],
+            basicInfo.styles || [],
+            basicInfo.labels?.[0]?.name || null,
+            basicInfo.labels?.[0]?.catno || null,
+            basicInfo.formats?.[0]?.name || null,
+            basicInfo.cover_image || basicInfo.thumb || null,
+            release.date_added,
+            release.folder_id,
+          ]
+        );
+
+        syncedCount++;
+      }
+
+      res.json({
+        success: true,
+        synced: syncedCount,
+        deleted: deletedCount,
+        total: releases.length,
+      });
+    }
   } catch (error) {
     console.error('Collection sync error:', error);
     res.status(500).json({ error: 'Failed to sync collection' });

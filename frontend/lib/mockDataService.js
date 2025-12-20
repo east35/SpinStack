@@ -30,11 +30,46 @@ class MockDataService {
 
       this.likedSet = new Set(liked ? JSON.parse(liked) : []);
       this.playedMap = new Map(played ? JSON.parse(played) : []);
+
+      // Initialize with some demo data if empty (first visit)
+      if (this.likedSet.size === 0 && this.playedMap.size === 0 && this.data.collection.length > 0) {
+        this.initializeDemoData();
+      }
     } catch (error) {
       console.error('Failed to load from localStorage:', error);
       this.likedSet = new Set();
       this.playedMap = new Map();
     }
+  }
+
+  /**
+   * Initialize demo data with some realistic likes and plays
+   */
+  initializeDemoData() {
+    const albums = this.data.collection;
+    if (albums.length === 0) return;
+
+    // Like ~15% of albums (random selection)
+    const likeCount = Math.floor(albums.length * 0.15);
+    const likedIndices = new Set();
+    while (likedIndices.size < likeCount) {
+      likedIndices.add(Math.floor(Math.random() * albums.length));
+    }
+    likedIndices.forEach(i => this.likedSet.add(albums[i].id));
+
+    // Add play counts to ~60% of albums with varied counts
+    const playCount = Math.floor(albums.length * 0.6);
+    const playedIndices = new Set();
+    while (playedIndices.size < playCount) {
+      playedIndices.add(Math.floor(Math.random() * albums.length));
+    }
+    playedIndices.forEach(i => {
+      // Random play count weighted towards lower numbers (1-10 plays mostly, some up to 30)
+      const plays = Math.floor(Math.random() * Math.random() * 30) + 1;
+      this.playedMap.set(albums[i].id, plays);
+    });
+
+    this.saveToStorage();
   }
 
   /**

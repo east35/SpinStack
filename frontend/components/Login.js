@@ -70,38 +70,19 @@ export default function Login({ onLogin }) {
         </p>
 
         <button
-          onClick={handleLogin}
-          disabled={loading}
-          className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed w-full"
+          onClick={handleDemoMode}
+          className="btn-primary w-full"
         >
-          {loading ? 'Connecting...' : 'Connect with Discogs'}
+          Explore Demo
         </button>
-        <p className="text-sm text-gray-500 mt-3 mb-6">
-          You'll be redirected to Discogs to authorize access to your collection
+        <p className="text-xs text-gray-500 mt-3">
+          Experience SpinStack with a sample collection. No login required.
         </p>
 
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-700"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-black text-gray-400">Or try the demo</span>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <button
-            onClick={handleDemoMode}
-            className="btn-secondary w-full"
-          >
-            Explore Demo
-          </button>
-          <p className="text-xs text-gray-500 mt-3">
-            Experience SpinStack with a sample collection. No login required.
-          </p>
-        </div>
-
         <div className="mt-8 pt-6 border-t border-gray-800">
+          <p className="text-sm text-gray-400 mb-4">
+            The full app connects to your Discogs account to sync your real collection and track your listening habits.
+          </p>
           <button
             onClick={() => setShowRoadmap(true)}
             className="text-sm text-gray-400 hover:text-white transition"

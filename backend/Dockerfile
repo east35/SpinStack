@@ -25,8 +25,11 @@ COPY --from=deps --chown=backend:nodejs /app/node_modules ./node_modules
 # Copy application code
 COPY --chown=backend:nodejs . .
 
+# Make entrypoint script executable
+RUN chmod +x docker-entrypoint.sh
+
 USER backend
 
 EXPOSE 3001
 
-CMD ["node", "src/index.js"]
+ENTRYPOINT ["./docker-entrypoint.sh"]

@@ -47,9 +47,11 @@ export const demoAuth = {
   login: () => mockResponse({ demoMode: true }),
   callback: () => mockResponse({ demoMode: true }),
   me: () => mockResponse({
-    discogs_username: 'demo_user',
-    stack_count: 5,
-    demoMode: true,
+    user: {
+      discogs_username: 'demo_user',
+      stack_count: 5,
+      demoMode: true,
+    }
   }),
   logout: () => {
     disableDemoMode();

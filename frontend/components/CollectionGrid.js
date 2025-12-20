@@ -139,11 +139,11 @@ export default function CollectionGrid() {
 
   // Reset when filters change
   useEffect(() => {
-    setRecords([]);
     setPage(0);
     setHasMore(true);
     loadCollection(true);
-  }, [searchQuery, selectedGenre, sort, loadCollection]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, selectedGenre, sort]);
 
   // Infinite scroll observer
   useEffect(() => {
@@ -168,14 +168,16 @@ export default function CollectionGrid() {
     if (page > 0) {
       loadCollection(false);
     }
-  }, [page, loadCollection]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   // Restore focus to search input after re-renders if it was focused
+  // Only restore on initial load, not during infinite scroll pagination
   useEffect(() => {
-    if (searchFocused && searchInputRef.current) {
+    if (searchFocused && searchInputRef.current && !loadingMore && loading) {
       searchInputRef.current.focus();
     }
-  }, [records, loading, loadingMore]);
+  }, [searchFocused, loading, loadingMore]);
 
   const handleToggleLike = async (recordId, e) => {
     if (e && e.stopPropagation) e.stopPropagation();
@@ -304,7 +306,7 @@ export default function CollectionGrid() {
                   )}
 
                   {/* Hover overlay with action buttons */}
-                  <div className="inset-0 bg-black/60 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                  <div className="absolute inset-0 bg-black/60 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                     <button
                       onClick={(e) => handleToggleLike(record.id, e)}
                       className="w-12 h-12 rounded-full bg-white/90 hover:bg-white flex items-center justify-center transition-all hover:scale-110 active:scale-95"
