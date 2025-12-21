@@ -17,6 +17,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
   const [promptPending, setPromptPending] = useState(false);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [showEndSessionPrompt, setShowEndSessionPrompt] = useState(false);
+  const [tiltStyle, setTiltStyle] = useState({});
 
   // Reset state when stack changes
   useEffect(() => {
@@ -142,6 +143,29 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
     setSelectedAlbum(album);
   };
 
+  const handleMouseMove = (e) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rotateX = (y - centerY) / 10;
+    const rotateY = (centerX - x) / 10;
+
+    setTiltStyle({
+      transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`,
+      transition: 'none',
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setTiltStyle({
+      transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+      transition: 'all 0.5s ease',
+    });
+  };
+
   // Minimized view
   if (view === 'minimized') {
     return (
@@ -170,7 +194,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
   if (view === 'pull') {
     return (
       <div className="fixed inset-0 bg-black z-50 flex flex-col">
-        <div className="border-b border-gray-800 px-4 py-3 flex items-center justify-between">
+        <div className="px-4 py-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Get Ready: {initialStack.name}</h2>
           <button
             onClick={handleCancel}
@@ -251,7 +275,12 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
         <div className="flex flex-col items-center p-6 space-y-6">
         <div className="text-center">
           <div className="relative inline-block mb-6">
-            <div className="w-96 h-96 max-w-[90vw] max-h-[90vw]">
+            <div
+              className="w-96 h-96 max-w-[90vw] max-h-[90vw]"
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+              style={tiltStyle}
+            >
               <img
                 src={currentAlbum.album_art_url || '/placeholder-album.png'}
                 alt={currentAlbum.title}
