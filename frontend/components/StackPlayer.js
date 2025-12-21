@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { stacks as stacksApi } from '../lib/api';
+import { extractColorsFromImage } from '../lib/colorExtractor';
 
 export default function StackPlayer({ stack: initialStack, onClose }) {
   const [view, setView] = useState('pull'); // 'pull', 'spinning', or 'minimized'
@@ -13,6 +14,20 @@ export default function StackPlayer({ stack: initialStack, onClose }) {
   );
   const [showPrompt, setShowPrompt] = useState(false);
   const [promptPending, setPromptPending] = useState(false);
+  const [backgroundGradient, setBackgroundGradient] = useState('linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)');
+
+  // Extract colors from current album art
+  useEffect(() => {
+    if (view === 'spinning' && albums[currentIndex]?.album_art_url) {
+      extractColorsFromImage(albums[currentIndex].album_art_url)
+        .then(({ gradient }) => {
+          setBackgroundGradient(gradient);
+        })
+        .catch((error) => {
+          console.error('Failed to extract colors:', error);
+        });
+    }
+  }, [currentIndex, view, albums]);
 
   const handleStartSpinning = () => {
     setView('spinning');
@@ -159,7 +174,10 @@ export default function StackPlayer({ stack: initialStack, onClose }) {
   const nextAlbums = albums.slice(currentIndex + 1, currentIndex + 3);
 
   return (
-    <div className="fixed inset-0 bg-black z-50 flex flex-col overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex flex-col overflow-y-auto transition-all duration-700"
+      style={{ background: backgroundGradient }}
+    >
       <div className="border-b border-gray-800 px-4 py-3 flex items-center justify-between">
         <h2 className="text-lg font-semibold">Now Spinning: {initialStack.name}</h2>
         <div className="flex items-center gap-4">
