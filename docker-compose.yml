@@ -75,11 +75,6 @@ services:
     restart: unless-stopped
     ports:
       - "6200:3000"
-    labels:
-      tsdproxy.enable: "true"
-      tsdproxy.name: "homepage"
-      tsdproxy.ephemeral: "true"
-      tsdproxy.container_port: "3000"
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
