@@ -34,6 +34,14 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
     setSelectedAlbum(null);
   }, [initialStack]);
 
+  // Lock body scroll when component mounts, unlock when unmounts
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
   const handleStartSpinning = () => {
     setView('spinning');
     setCurrentIndex(0);
