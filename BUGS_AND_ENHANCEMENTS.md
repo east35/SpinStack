@@ -9,17 +9,20 @@
 ### 1. Collection Sync Issue
 **Problem**: Collection not removing records that were removed from Discogs
 **Priority**: High
-**Status**: TODO
+**Status**: ✅ FIXED (commit: ae7054c)
+**Solution**: Refactored deletion logic to use temporary table approach instead of NOT IN with parameter lists. This avoids PostgreSQL parameter limits and ensures proper deletion of records no longer in Discogs collection.
 
 ### 2. Browser Back Button Navigation
 **Problem**: Clicking back arrow in browser takes user to Discogs auth, not previous view in app
 **Priority**: Medium
-**Status**: TODO
+**Status**: ✅ FIXED (commit: 78abe6f)
+**Solution**: Changed OAuth redirect from `window.location.href` to `window.location.replace()` to prevent adding Discogs authorization page to browser history stack.
 
 ### 3. User Dropdown Click-Outside Behavior
 **Problem**: Clicking outside of user dropdown active should close dropdown
 **Priority**: Low
-**Status**: TODO
+**Status**: ✅ FIXED (commit: d538193)
+**Solution**: Added useRef hook and click-outside detection with mousedown event listener. Dropdown now properly closes when clicking anywhere outside of it.
 
 ---
 
