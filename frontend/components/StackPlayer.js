@@ -193,7 +193,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
   // Pull Records view
   if (view === 'pull') {
     return (
-      <div className="fixed inset-0 bg-black z-50 flex flex-col">
+      <div className="fixed inset-0 bg-black z-50 flex flex-col" style={{ background: 'linear-gradient(to bottom, #42423D 0%, #000000 100%)' }}>
         <div className="px-4 py-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Get Ready: {initialStack.name}</h2>
           <button
@@ -227,7 +227,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
           </div>
         </div>
 
-        <div className="border-t border-gray-800 p-6 flex gap-4 justify-center">
+        <div className="p-6 flex gap-4 justify-center">
           <button
             onClick={handleCancel}
             className="px-8 py-3 bg-gray-800 rounded-full hover:bg-gray-700"
@@ -274,9 +274,9 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
       <div className="flex-1 overflow-y-auto">
         <div className="flex flex-col items-center p-6 space-y-6">
         <div className="text-center">
-          <div className="relative inline-block mb-6">
+          <div className="relative inline-block mb-6 group">
             <div
-              className="w-96 h-96 max-w-[90vw] max-h-[90vw]"
+              className="w-96 h-96 max-w-[90vw] max-h-[90vw] relative"
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
               style={tiltStyle}
@@ -286,6 +286,20 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
                 alt={currentAlbum.title}
                 className="w-full h-full rounded-lg object-cover shadow-2xl"
               />
+              {/* Cellophane wrap effect */}
+              <div className="absolute inset-0 rounded-lg pointer-events-none overflow-hidden">
+                {/* Plastic texture overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/5"></div>
+                {/* Shine effect */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-30 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                {/* Subtle wrinkles/creases */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-white/10 via-transparent to-transparent opacity-40"></div>
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-white/8 via-transparent to-transparent opacity-30"></div>
+                {/* Edge highlights */}
+                <div className="absolute inset-0 rounded-lg" style={{
+                  boxShadow: 'inset 0 0 20px rgba(255,255,255,0.1), inset 0 0 40px rgba(255,255,255,0.05)'
+                }}></div>
+              </div>
             </div>
             {nextAlbums.length > 0 && (
               <div className="absolute -right-16 top-8 -z-10 hidden md:block">
