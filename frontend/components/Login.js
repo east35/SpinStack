@@ -15,7 +15,8 @@ export default function Login({ onLogin }) {
         sessionStorage.setItem('oauth_state', response.data.state);
       }
       // Redirect user to Discogs authorization
-      window.location.href = response.data.authorizeUrl;
+      // Use replace() to avoid adding Discogs auth page to browser history
+      window.location.replace(response.data.authorizeUrl);
     } catch (error) {
       console.error('Login failed:', error);
       alert('Failed to initiate login. Please try again.');
