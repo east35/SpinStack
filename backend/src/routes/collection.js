@@ -34,17 +34,44 @@ router.post('/sync', requireAuth, async (req, res) => {
 
     // Get current Discogs instance IDs
     const discogsInstanceIds = releases.map(r => r.instance_id);
+    console.log(`Found ${discogsInstanceIds.length} instance IDs from Discogs`);
 
     // Delete records that are no longer in Discogs collection
     let deletedCount = 0;
     if (discogsInstanceIds.length > 0) {
+      // Use temporary table approach for better performance with large collections
+      // and to avoid parameter limits
+      await db.query('CREATE TEMP TABLE IF NOT EXISTS temp_discogs_ids (instance_id INTEGER)');
+      await db.query('TRUNCATE temp_discogs_ids');
+
+      // Batch insert all Discogs instance IDs into temp table
+      if (discogsInstanceIds.length > 0) {
+        const values = discogsInstanceIds.map((id, i) => `($${i + 1})`).join(',');
+        await db.query(
+          `INSERT INTO temp_discogs_ids (instance_id) VALUES ${values}`,
+          discogsInstanceIds
+        );
+      }
+
+      // Delete records not in the temp table
       const deleteResult = await db.query(
         `DELETE FROM vinyl_records
-         WHERE user_id = $1 AND discogs_instance_id NOT IN (${discogsInstanceIds.map((_, i) => `$${i + 2}`).join(',')})`,
-        [userId, ...discogsInstanceIds]
+         WHERE user_id = $1
+         AND discogs_instance_id NOT IN (SELECT instance_id FROM temp_discogs_ids)
+         RETURNING discogs_instance_id`,
+        [userId]
       );
       deletedCount = deleteResult.rowCount;
-      console.log(`Deleted ${deletedCount} records no longer in Discogs collection`);
+
+      if (deletedCount > 0) {
+        console.log(`Deleted ${deletedCount} records no longer in Discogs collection`);
+        console.log(`Deleted instance IDs:`, deleteResult.rows.map(r => r.discogs_instance_id));
+      } else {
+        console.log('No records to delete - local collection matches Discogs');
+      }
+
+      // Clean up temp table
+      await db.query('DROP TABLE IF EXISTS temp_discogs_ids');
     } else {
       // If no releases from Discogs, delete all user records
       const deleteResult = await db.query(
