@@ -14,9 +14,9 @@
 
 ### 2. Browser Back Button Navigation
 **Problem**: Clicking back arrow in browser takes user to Discogs auth, not previous view in app
-**Priority**: Medium
-**Status**: ✅ FIXED (commit: 78abe6f)
-**Solution**: Changed OAuth redirect from `window.location.href` to `window.location.replace()` to prevent adding Discogs authorization page to browser history stack.
+**Priority**: Low
+**Status**: 📋 BACKLOG (attempted fixes in commits: 78abe6f, cc828dc)
+**Notes**: This is a known OAuth limitation. Attempts to fix with history manipulation and popstate listeners have been made. Moving to backlog to focus on feature enhancements. May require deeper architectural changes to OAuth flow.
 
 ### 3. User Dropdown Click-Outside Behavior
 **Problem**: Clicking outside of user dropdown active should close dropdown
