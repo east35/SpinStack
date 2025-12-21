@@ -4,7 +4,7 @@ import { extractColorsFromImage } from '../lib/colorExtractor';
 import AlbumDetailModal from './AlbumDetailModal';
 import Icon from './Icon';
 
-export default function StackPlayer({ stack: initialStack, onClose }) {
+export default function StackPlayer({ stack: initialStack, onClose, onMinimize, onMaximize }) {
   const [view, setView] = useState('pull'); // 'pull', 'spinning', or 'minimized'
   const [currentIndex, setCurrentIndex] = useState(0);
   const [albums, setAlbums] = useState(
@@ -83,10 +83,12 @@ export default function StackPlayer({ stack: initialStack, onClose }) {
 
   const handleMinimize = () => {
     setView('minimized');
+    if (onMinimize) onMinimize();
   };
 
   const handleMaximize = () => {
     setView('spinning');
+    if (onMaximize) onMaximize();
   };
 
   const handleCancel = () => {

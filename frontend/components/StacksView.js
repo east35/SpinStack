@@ -8,6 +8,9 @@ export default function StacksView() {
   const [curatedStacks, setCuratedStacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeStack, setActiveStack] = useState(null);
+  const [isStackMinimized, setIsStackMinimized] = useState(false);
+  const [pendingStack, setPendingStack] = useState(null);
+  const [showConflictPrompt, setShowConflictPrompt] = useState(false);
 
   // Helper function to get unique artists from a stack
   const getArtistSubtitle = (albums) => {
@@ -69,15 +72,41 @@ export default function StacksView() {
   };
 
   const handleStartSpinning = () => {
-    if (dailyStack) {
+    if (!dailyStack) return;
+
+    // Check if there's a minimized stack
+    if (isStackMinimized && activeStack) {
+      setPendingStack(dailyStack);
+      setShowConflictPrompt(true);
+    } else {
       setActiveStack(dailyStack);
+      setIsStackMinimized(false);
     }
   };
 
   const handleStartCurated = (stack) => {
-    if (stack) {
+    if (!stack) return;
+
+    // Check if there's a minimized stack
+    if (isStackMinimized && activeStack) {
+      setPendingStack(stack);
+      setShowConflictPrompt(true);
+    } else {
       setActiveStack(stack);
+      setIsStackMinimized(false);
     }
+  };
+
+  const handleStopCurrentSession = () => {
+    setActiveStack(pendingStack);
+    setPendingStack(null);
+    setShowConflictPrompt(false);
+    setIsStackMinimized(false);
+  };
+
+  const handleKeepSpinning = () => {
+    setPendingStack(null);
+    setShowConflictPrompt(false);
   };
 
   if (loading) {
@@ -191,8 +220,39 @@ export default function StacksView() {
       {activeStack && (
         <StackPlayer
           stack={activeStack}
-          onClose={() => setActiveStack(null)}
+          onClose={() => {
+            setActiveStack(null);
+            setIsStackMinimized(false);
+          }}
+          onMinimize={() => setIsStackMinimized(true)}
+          onMaximize={() => setIsStackMinimized(false)}
         />
+      )}
+
+      {/* Session Conflict Prompt */}
+      {showConflictPrompt && (
+        <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
+          <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md space-y-4 border border-gray-800">
+            <h3 className="text-lg font-semibold">Stop current session?</h3>
+            <p className="text-gray-300">
+              You have a stack session in progress. Would you like to stop it and start a new one?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleStopCurrentSession}
+                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors"
+              >
+                Stop Session
+              </button>
+              <button
+                onClick={handleKeepSpinning}
+                className="flex-1 px-4 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg font-semibold transition-colors"
+              >
+                Keep Spinning
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
