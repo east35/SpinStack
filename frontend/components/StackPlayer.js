@@ -162,14 +162,21 @@ export default function StackPlayer({ stack: initialStack, onClose }) {
     <div className="fixed inset-0 bg-black z-50 flex flex-col overflow-y-auto">
       <div className="border-b border-gray-800 px-4 py-3 flex items-center justify-between">
         <h2 className="text-lg font-semibold">Now Spinning: {initialStack.name}</h2>
-        <button
-          onClick={handleMinimize}
-          className="text-gray-400 hover:text-white"
-        >
-          Minimize
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleMinimize}
+            className="text-gray-400 hover:text-white"
+          >
+            Minimize
+          </button>
+          <button
+            onClick={handleCancel}
+            className="text-gray-400 hover:text-red-400 transition-colors"
+          >
+            End Session
+          </button>
+        </div>
       </div>
-
       <div className="flex flex-col items-center p-6 space-y-6">
         <div className="text-center">
           <div className="relative inline-block mb-6">
