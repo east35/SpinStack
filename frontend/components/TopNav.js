@@ -1,15 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { auth, collection } from '../lib/api';
 import Icon from './Icon';
 
 export default function TopNav({ user, onLogout, currentView, onNavigate }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const dropdownRef = useRef(null);
 
   // Close dropdown when view changes
   useEffect(() => {
     setShowDropdown(false);
   }, [currentView]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDropdown]);
 
   const handleLogout = async () => {
     try {
@@ -49,7 +67,7 @@ export default function TopNav({ user, onLogout, currentView, onNavigate }) {
           />
         </button>
 
-        <div className="relative">
+        <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setShowDropdown(!showDropdown)}
             className="flex items-center gap-2 text-sm text-gray-400 bg-gray-900 rounded-lg px-4 py-2 overflow-hidden hover:text-gray-300 transition-all min-h-[44px]"
