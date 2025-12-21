@@ -138,6 +138,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
 
   const handleShowDetails = (album, e) => {
     if (e) e.stopPropagation();
+    console.log('Album data being passed to modal:', album);
     setSelectedAlbum(album);
   };
 
