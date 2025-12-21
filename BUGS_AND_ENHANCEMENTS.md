@@ -33,22 +33,26 @@
 #### 1. End Session Button
 **Feature**: Add 'End Session' button next to minimize, closes the stack session
 **Priority**: Medium
-**Status**: TODO
+**Status**: ✅ IMPLEMENTED (commit: 53c6431)
+**Details**: Added red-hover "End Session" button in Now Spinning header next to Minimize button.
 
 #### 2. Dynamic Background Gradient
 **Feature**: Generate dynamic background gradient from album art
 **Priority**: Medium
-**Status**: TODO
+**Status**: ✅ IMPLEMENTED (commit: 7c4846f)
+**Details**: Created color extraction utility that samples album art to generate dynamic gradients. Background smoothly transitions (700ms) between albums with darkened colors for readability.
 
 #### 3. Stack List Item Behavior
 **Feature**: Stack list items should have same behavior as collections (add detail view and like button)
 **Priority**: Medium
-**Status**: TODO
+**Status**: ✅ IMPLEMENTED (commit: dbc05b7)
+**Details**: Stack items now show Like and Info buttons on hover. Clicking Info opens the album detail modal. Full feature parity with collection view.
 
 #### 4. Session Conflict Prompt
 **Feature**: If stack is minimized and another stack is cued, prompt "stop current session? Stop session | keep spinning"
 **Priority**: Medium
-**Status**: TODO
+**Status**: ✅ IMPLEMENTED (commit: ae1f75f)
+**Details**: When starting a new stack while one is minimized, a modal prompts user to either "Stop Session" (red) or "Keep Spinning" (gray), preventing accidental session termination.
 
 ---
 
