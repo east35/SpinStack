@@ -60,12 +60,14 @@ async function generateStyleStacks(userId) {
     // Query records matching any style in this cluster
     const result = await db.query(
       `SELECT id, discogs_release_id, title, artist, album_art_url, year, genres, styles,
+              label, catalog_number, format, country, listened_count, last_played_at,
+              date_added_to_collection, is_liked,
               array_length(genres, 1) as genre_count
        FROM vinyl_records
-       WHERE user_id = $1 
-         AND styles IS NOT NULL 
+       WHERE user_id = $1
+         AND styles IS NOT NULL
          AND styles && $2::text[]
-       ORDER BY 
+       ORDER BY
          -- Prioritize records with multiple matching styles (more representative of the cluster)
          (SELECT COUNT(*) FROM unnest(styles) s WHERE s = ANY($2::text[])) DESC,
          -- Then by genre diversity (cross-genre discoveries are more interesting)
@@ -107,7 +109,9 @@ async function generateStyleStacks(userId) {
 async function generateDailyStack(userId) {
   // Pull more than needed, then enforce unique releases
   const result = await db.query(
-    `SELECT id, discogs_release_id, title, artist, album_art_url, year, genres
+    `SELECT id, discogs_release_id, title, artist, album_art_url, year, genres, styles,
+            label, catalog_number, format, country, listened_count, last_played_at,
+            date_added_to_collection, is_liked
      FROM vinyl_records
      WHERE user_id = $1
      ORDER BY RANDOM()
@@ -189,7 +193,9 @@ async function generateWeeklyStacks(userId, weekStartDate) {
 
   const fetchStack = async (id, name, whereClause, orderClause = 'ORDER BY RANDOM()', limit = 16, extraParams = [], targetArray = stacks) => {
     const result = await db.query(
-      `SELECT id, discogs_release_id, title, artist, album_art_url, year, genres
+      `SELECT id, discogs_release_id, title, artist, album_art_url, year, genres, styles,
+              label, catalog_number, format, country, listened_count, last_played_at,
+              date_added_to_collection, is_liked
        FROM vinyl_records
        WHERE user_id = $1 ${whereClause}
        ${orderClause}
@@ -292,7 +298,9 @@ async function generateWeeklyStacks(userId, weekStartDate) {
   // Fallback: random mixes if none found yet
   if (stacks.length === 0) {
     const result = await db.query(
-      `SELECT id, discogs_release_id, title, artist, album_art_url, year, genres
+      `SELECT id, discogs_release_id, title, artist, album_art_url, year, genres, styles,
+              label, catalog_number, format, country, listened_count, last_played_at,
+              date_added_to_collection, is_liked
        FROM vinyl_records
        WHERE user_id = $1
        ORDER BY RANDOM()

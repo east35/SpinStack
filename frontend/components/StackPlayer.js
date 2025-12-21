@@ -18,6 +18,24 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
   const [promptPending, setPromptPending] = useState(false);
   const [backgroundGradient, setBackgroundGradient] = useState('linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)');
   const [selectedAlbum, setSelectedAlbum] = useState(null);
+  const [showEndSessionPrompt, setShowEndSessionPrompt] = useState(false);
+
+  // Reset state when stack changes
+  useEffect(() => {
+    setView('pull');
+    setCurrentIndex(0);
+    setAlbums(
+      initialStack.albums.map((album) => ({
+        ...album,
+        played: false,
+        skipped: false,
+      }))
+    );
+    setShowPrompt(false);
+    setPromptPending(false);
+    setBackgroundGradient('linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)');
+    setSelectedAlbum(null);
+  }, [initialStack]);
 
   // Extract colors from current album art
   useEffect(() => {
@@ -30,7 +48,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
           console.error('Failed to extract colors:', error);
         });
     }
-  }, [currentIndex, view, albums]);
+  }, [currentIndex, view]);
 
   const handleStartSpinning = () => {
     setView('spinning');
@@ -89,6 +107,19 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
   const handleMaximize = () => {
     setView('spinning');
     if (onMaximize) onMaximize();
+  };
+
+  const handleEndSessionClick = () => {
+    setShowEndSessionPrompt(true);
+  };
+
+  const handleConfirmEndSession = () => {
+    setShowEndSessionPrompt(false);
+    onClose();
+  };
+
+  const handleCancelEndSession = () => {
+    setShowEndSessionPrompt(false);
   };
 
   const handleCancel = () => {
@@ -203,27 +234,28 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col overflow-y-auto transition-all duration-700"
+      className="fixed inset-0 z-50 flex flex-col overflow-hidden transition-all duration-700"
       style={{ background: backgroundGradient }}
     >
       <div className="border-b border-gray-800 px-4 py-3 flex items-center justify-between">
         <h2 className="text-lg font-semibold">Now Spinning: {initialStack.name}</h2>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-8">
+          <button
+            onClick={handleEndSessionClick}
+            className="text-gray-400 hover:text-red-400 transition-colors"
+          >
+            End Session
+          </button>
           <button
             onClick={handleMinimize}
             className="text-gray-400 hover:text-white"
           >
             Minimize
           </button>
-          <button
-            onClick={handleCancel}
-            className="text-gray-400 hover:text-red-400 transition-colors"
-          >
-            End Session
-          </button>
         </div>
       </div>
-      <div className="flex flex-col items-center p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto">
+        <div className="flex flex-col items-center p-6 space-y-6">
         <div className="text-center">
           <div className="relative inline-block mb-6">
             <div className="w-96 h-96 max-w-[90vw] max-h-[90vw]">
@@ -337,6 +369,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
             ))}
           </div>
         </div>
+        </div>
       </div>
 
       {showPrompt && (
@@ -367,6 +400,32 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
             >
               Cancel
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* End Session Confirmation */}
+      {showEndSessionPrompt && (
+        <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
+          <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md space-y-4 border border-gray-800">
+            <h3 className="text-lg font-semibold">End this session?</h3>
+            <p className="text-gray-300">
+              Are you sure you want to end your spinning session? Your progress will be saved.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleConfirmEndSession}
+                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors"
+              >
+                End Session
+              </button>
+              <button
+                onClick={handleCancelEndSession}
+                className="flex-1 px-4 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg font-semibold transition-colors"
+              >
+                Keep Spinning
+              </button>
+            </div>
           </div>
         </div>
       )}
