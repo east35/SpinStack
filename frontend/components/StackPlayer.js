@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { stacks as stacksApi, collection } from '../lib/api';
-import { extractColorsFromImage } from '../lib/colorExtractor';
 import AlbumDetailModal from './AlbumDetailModal';
 import Icon from './Icon';
 
@@ -16,7 +15,6 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
   );
   const [showPrompt, setShowPrompt] = useState(false);
   const [promptPending, setPromptPending] = useState(false);
-  const [backgroundGradient, setBackgroundGradient] = useState('linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)');
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [showEndSessionPrompt, setShowEndSessionPrompt] = useState(false);
 
@@ -33,22 +31,8 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
     );
     setShowPrompt(false);
     setPromptPending(false);
-    setBackgroundGradient('linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)');
     setSelectedAlbum(null);
   }, [initialStack]);
-
-  // Extract colors from current album art
-  useEffect(() => {
-    if (view === 'spinning' && albums[currentIndex]?.album_art_url) {
-      extractColorsFromImage(albums[currentIndex].album_art_url)
-        .then(({ gradient }) => {
-          setBackgroundGradient(gradient);
-        })
-        .catch((error) => {
-          console.error('Failed to extract colors:', error);
-        });
-    }
-  }, [currentIndex, view]);
 
   const handleStartSpinning = () => {
     setView('spinning');
@@ -234,10 +218,10 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col overflow-hidden transition-all duration-700"
-      style={{ background: backgroundGradient }}
+      className="fixed inset-0 z-50 flex flex-col overflow-hidden"
+      style={{ background: 'linear-gradient(to bottom, #42423D 0%, #000000 100%)' }}
     >
-      <div className="border-b border-gray-800 px-4 py-3 flex items-center justify-between">
+      <div className="px-4 py-3 flex items-center justify-between">
         <h2 className="text-lg font-semibold">Now Spinning: {initialStack.name}</h2>
         <div className="flex items-center gap-8">
           <button
