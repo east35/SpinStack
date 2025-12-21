@@ -50,7 +50,7 @@ services:
       DISCOGS_CONSUMER_KEY: ${DISCOGS_CONSUMER_KEY}
       DISCOGS_CONSUMER_SECRET: ${DISCOGS_CONSUMER_SECRET}
       SESSION_SECRET: ${SESSION_SECRET}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:6200}
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,7 +74,7 @@ services:
     container_name: spinstack-frontend
     restart: unless-stopped
     ports:
-      - "3200:3000"
+      - "6200:3000"
     labels:
       tsdproxy.enable: "true"
       tsdproxy.name: "homepage"
