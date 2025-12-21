@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { stacks as stacksApi } from '../lib/api';
+import { stacks as stacksApi, collection } from '../lib/api';
 import { extractColorsFromImage } from '../lib/colorExtractor';
+import AlbumDetailModal from './AlbumDetailModal';
+import Icon from './Icon';
 
 export default function StackPlayer({ stack: initialStack, onClose }) {
   const [view, setView] = useState('pull'); // 'pull', 'spinning', or 'minimized'
@@ -15,6 +17,7 @@ export default function StackPlayer({ stack: initialStack, onClose }) {
   const [showPrompt, setShowPrompt] = useState(false);
   const [promptPending, setPromptPending] = useState(false);
   const [backgroundGradient, setBackgroundGradient] = useState('linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)');
+  const [selectedAlbum, setSelectedAlbum] = useState(null);
 
   // Extract colors from current album art
   useEffect(() => {
@@ -88,6 +91,29 @@ export default function StackPlayer({ stack: initialStack, onClose }) {
 
   const handleCancel = () => {
     onClose();
+  };
+
+  const handleToggleLike = async (albumId, e) => {
+    if (e) e.stopPropagation();
+    try {
+      await collection.toggleLike(albumId);
+      setAlbums((prev) =>
+        prev.map((a) =>
+          a.id === albumId ? { ...a, is_liked: !a.is_liked } : a
+        )
+      );
+      // Update selected album if it's the one being liked
+      if (selectedAlbum && selectedAlbum.id === albumId) {
+        setSelectedAlbum((prev) => ({ ...prev, is_liked: !prev.is_liked }));
+      }
+    } catch (error) {
+      console.error('Failed to toggle like:', error);
+    }
+  };
+
+  const handleShowDetails = (album, e) => {
+    if (e) e.stopPropagation();
+    setSelectedAlbum(album);
   };
 
   // Minimized view
@@ -249,7 +275,7 @@ export default function StackPlayer({ stack: initialStack, onClose }) {
               <div
                 key={`${album.id}-${index}`}
                 onClick={() => setCurrentIndex(index)}
-                className={`flex items-center gap-3 p-3 rounded cursor-pointer ${
+                className={`group relative flex items-center gap-3 p-3 rounded cursor-pointer ${
                   index === currentIndex
                     ? 'bg-yellow-400 text-black'
                     : album.played || album.skipped
@@ -271,6 +297,40 @@ export default function StackPlayer({ stack: initialStack, onClose }) {
                     {album.skipped ? 'Skipped' : 'Played'}
                   </span>
                 )}
+
+                {/* Hover action buttons */}
+                <div className="hidden md:flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => handleToggleLike(album.id, e)}
+                    className={`w-8 h-8 rounded-full ${
+                      index === currentIndex
+                        ? 'bg-white/20 hover:bg-white/30'
+                        : 'bg-white/10 hover:bg-white/20'
+                    } flex items-center justify-center transition-all`}
+                    title={album.is_liked ? "Unlike" : "Like"}
+                  >
+                    <Icon
+                      name="heart"
+                      size={16}
+                      className={album.is_liked ? "text-red-500" : index === currentIndex ? "text-black" : "text-white"}
+                    />
+                  </button>
+                  <button
+                    onClick={(e) => handleShowDetails(album, e)}
+                    className={`w-8 h-8 rounded-full ${
+                      index === currentIndex
+                        ? 'bg-white/20 hover:bg-white/30'
+                        : 'bg-white/10 hover:bg-white/20'
+                    } flex items-center justify-center transition-all`}
+                    title="View details"
+                  >
+                    <Icon
+                      name="info"
+                      size={16}
+                      className={index === currentIndex ? "text-black" : "text-white"}
+                    />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -307,6 +367,19 @@ export default function StackPlayer({ stack: initialStack, onClose }) {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Album Detail Modal */}
+      {selectedAlbum && (
+        <AlbumDetailModal
+          album={selectedAlbum}
+          onClose={() => setSelectedAlbum(null)}
+          onToggleLike={(id) => handleToggleLike(id)}
+          onMarkPlayed={(id) => {
+            // Mark played functionality can be added if needed
+            console.log('Mark played:', id);
+          }}
+        />
       )}
     </div>
   );
