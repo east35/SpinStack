@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl:*)",
+      "Bash(psql:*)",
+      "Bash(docker exec:*)",
+      "Bash(redis-cli:*)",
+      "Bash(while read sess)",
+      "Bash(do echo \"=== $sess ===\")",
+      "Bash(done)",
+      "Bash(node -e:*)",
+      "Bash(tail:*)",
+      "Bash(lsof:*)",
+      "Bash(node -c:*)",
+      "Bash(DATABASE_URL=postgresql://vinyl_user:vinyl_pass@localhost:5432/vinyl_collection REDIS_URL=redis://127.0.0.1:6379 timeout 5 node:*)",
+      "Bash(pkill:*)",
+      "Bash(xargs kill -9)",
+      "Bash(timeout 5 curl:*)",
+      "Bash(cat:*)"
+    ]
+  }
+}
