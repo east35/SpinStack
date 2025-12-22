@@ -30,10 +30,14 @@ export default function StacksView() {
   const loadDailyStack = async () => {
     try {
       setLoading(true);
+      console.log('Loading daily stack...');
       const response = await stacksApi.getDaily();
+      console.log('Daily stack response:', response.data);
+      console.log('Stack albums:', response.data.stack?.albums);
       setDailyStack(response.data.stack);
     } catch (error) {
       console.error('Failed to load daily stack:', error);
+      console.error('Error details:', error.response?.data);
     } finally {
       setLoading(false);
     }
@@ -113,10 +117,27 @@ export default function StacksView() {
     return <div className="text-center py-12">Cueing...</div>;
   }
 
-  if (!dailyStack || dailyStack.albums.length === 0) {
+  if (!dailyStack || !dailyStack.albums || dailyStack.albums.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-400">No albums available for today's stack.</p>
+      <div className="text-center py-12 px-4">
+        <h2 className="text-xl font-bold mb-4">No Stacks Available</h2>
+        <p className="text-gray-400 mb-6">
+          We couldn't generate a stack for you. This usually means your collection needs to be synced.
+        </p>
+        <div className="space-y-3 max-w-md mx-auto text-left">
+          <div className="bg-gray-800 rounded-lg p-4">
+            <h3 className="font-semibold mb-2">Troubleshooting:</h3>
+            <ol className="list-decimal list-inside space-y-2 text-sm text-gray-300">
+              <li>Go to the Collection tab to verify your records are showing</li>
+              <li>Click the "Sync" button to sync from Discogs</li>
+              <li>Wait for the sync confirmation message</li>
+              <li>Return here and refresh to see your stacks</li>
+            </ol>
+            <p className="text-xs text-gray-500 mt-3">
+              Tip: Check the browser console (F12) for error messages
+            </p>
+          </div>
+        </div>
       </div>
     );
   }

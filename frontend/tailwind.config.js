@@ -14,17 +14,23 @@ module.exports = {
       },
       animation: {
         'spin-reverse': 'spin 1s linear infinite reverse',
-        'fadeIn': 'fadeIn 0.2s ease-out',
-        'fadeOut': 'fadeOut 0.2s ease-out',
+        'record-peek-out': 'recordPeekOut 0.2s ease-out',
+        'record-peek-in': 'recordPeekIn 0.2s ease-out',
+        'record-rock': 'recordRock 8.4s ease-in-out infinite',
       },
       keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0', transform: 'translateY(-10px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+        recordPeekOut: {
+          '0%': { transform: 'translateX(20%) rotate(18deg)' },
+          '100%': { transform: 'translateX(0) rotate(0deg)' },
         },
-        fadeOut: {
-          '0%': { opacity: '1', transform: 'translateY(0)' },
-          '100%': { opacity: '0', transform: 'translateY(-10px)' },
+        recordPeekIn: {
+          '0%': { transform: 'translateX(0) rotate(0deg)' },
+          '100%': { transform: 'translateX(20%) rotate(18deg)' },
+        },
+        recordRock: {
+          '0%': { transform: 'rotate(-45deg)' },
+          '50%': { transform: 'rotate(45deg)' },
+          '100%': { transform: 'rotate(-45deg)' },
         },
       },
     },

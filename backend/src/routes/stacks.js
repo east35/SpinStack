@@ -192,25 +192,35 @@ async function generateWeeklyStacks(userId, weekStartDate) {
   const genreStacks = [];
 
   const fetchStack = async (id, name, whereClause, orderClause = 'ORDER BY RANDOM()', limit = 16, extraParams = [], targetArray = stacks) => {
-    const result = await db.query(
-      `SELECT id, discogs_release_id, title, artist, album_art_url, year, genres, styles,
-              label, catalog_number, format, country, listened_count, last_played_at,
-              date_added_to_collection, is_liked
-       FROM vinyl_records
-       WHERE user_id = $1 ${whereClause}
-       ${orderClause}
-       LIMIT ${limit}`,
-      [userId, ...extraParams]
-    );
-    const albums = getUniqueAlbums(result.rows).slice(0, 8);
-    if (albums.length >= 4) {
-      targetArray.push({ id, name, albums });
+    try {
+      const result = await db.query(
+        `SELECT id, discogs_release_id, title, artist, album_art_url, year, genres, styles,
+                label, catalog_number, format, country, listened_count, last_played_at,
+                date_added_to_collection, is_liked
+         FROM vinyl_records
+         WHERE user_id = $1 ${whereClause}
+         ${orderClause}
+         LIMIT ${limit}`,
+        [userId, ...extraParams]
+      );
+      const albums = getUniqueAlbums(result.rows).slice(0, 8);
+      if (albums.length >= 4) {
+        targetArray.push({ id, name, albums });
+      }
+    } catch (error) {
+      console.error(`Error fetching stack "${name}":`, error);
+      // Continue generating other stacks even if one fails
     }
   };
 
   // 1. First: Style-based stacks (cross-genre mood clusters) - up to 8
-  const styleStacks = await generateStyleStacks(userId);
-  stacks.push(...styleStacks.slice(0, 8));
+  try {
+    const styleStacks = await generateStyleStacks(userId);
+    stacks.push(...styleStacks.slice(0, 8));
+  } catch (error) {
+    console.error('Error generating style stacks:', error);
+    // Continue with other stacks even if style stacks fail
+  }
 
   // 2. Curated stacks (behavior-based)
   // Recent additions (last 90 days)

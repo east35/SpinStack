@@ -13,11 +13,13 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
       skipped: false,
     }))
   );
-  const [showPrompt, setShowPrompt] = useState(false);
+  const [showPrompt, setShowPrompt] = useState({ show: false, targetIndex: null });
   const [promptPending, setPromptPending] = useState(false);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [showEndSessionPrompt, setShowEndSessionPrompt] = useState(false);
   const [tiltStyle, setTiltStyle] = useState({});
+  const [isSwapping, setIsSwapping] = useState(false);
+  const [swapPhase, setSwapPhase] = useState('idle'); // 'idle', 'record-out', 'fade', 'record-in'
 
   // Reset state when stack changes
   useEffect(() => {
@@ -30,7 +32,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
         skipped: false,
       }))
     );
-    setShowPrompt(false);
+    setShowPrompt({ show: false, targetIndex: null });
     setPromptPending(false);
     setSelectedAlbum(null);
   }, [initialStack]);
@@ -48,8 +50,35 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
     setCurrentIndex(0);
   };
 
-  const handleNext = () => {
-    setShowPrompt(true);
+  const handleNext = (targetIndex = null) => {
+    if (targetIndex !== null) {
+      // Store the target index for later use
+      setShowPrompt({ show: true, targetIndex });
+    } else {
+      setShowPrompt({ show: true, targetIndex: currentIndex + 1 });
+    }
+  };
+
+  const runSwapToIndex = (nextIndex) => {
+    if (isSwapping) return;
+    setIsSwapping(true);
+    setSwapPhase('record-out');
+
+    // Phase 1: Record slides out (500ms)
+    setTimeout(() => {
+      setSwapPhase('fade');
+      // Phase 2: Album art fades during record out (300ms)
+      setTimeout(() => {
+        setCurrentIndex(nextIndex);
+        setSwapPhase('record-in');
+        // Phase 3: Record slides back in (500ms)
+        setTimeout(() => {
+          setSwapPhase('idle');
+          setIsSwapping(false);
+          setPromptPending(false);
+        }, 500);
+      }, 300);
+    }, 500);
   };
 
   const handleResolveNext = async (action) => {
@@ -57,6 +86,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
     const currentAlbum = albums[currentIndex];
     const played = action === 'played';
     const skipped = action === 'skipped';
+    const targetIndex = typeof showPrompt === 'object' ? showPrompt.targetIndex : currentIndex + 1;
 
     try {
       setPromptPending(true);
@@ -70,12 +100,12 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
       updated[currentIndex] = { ...currentAlbum, played, skipped };
       setAlbums(updated);
 
-      setShowPrompt(false);
-      setPromptPending(false);
+      setShowPrompt({ show: false, targetIndex: null });
 
-      if (currentIndex < albums.length - 1) {
-        setCurrentIndex(currentIndex + 1);
+      if (targetIndex < albums.length) {
+        runSwapToIndex(targetIndex);
       } else {
+        setPromptPending(false);
         alert('Stack complete!');
         onClose();
       }
@@ -88,7 +118,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
 
   const handlePrevious = () => {
     if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
+      runSwapToIndex(currentIndex - 1);
     }
   };
 
@@ -180,7 +210,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
             className="w-12 h-12 rounded object-cover"
           />
           <div>
-            <p className="font-semibold text-sm">Now Spinning: {initialStack.name}</p>
+            <p className="font-semibold text-sm"><span className="opacity-50">Now Spinning:</span> {initialStack.name}</p>
             <p className="text-xs text-gray-400">
               {currentIndex + 1} / {albums.length}
             </p>
@@ -195,7 +225,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
     return (
       <div className="fixed inset-0 bg-black z-50 flex flex-col" style={{ background: 'linear-gradient(to bottom, #42423D 0%, #000000 100%)' }}>
         <div className="px-4 py-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Get Ready: {initialStack.name}</h2>
+          <h2 className="text-lg font-semibold"><span className='opacity-50 pr-1'>Get Ready</span>{initialStack.name}</h2>
           <button
             onClick={handleCancel}
             className="text-gray-400 hover:text-white"
@@ -209,8 +239,8 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {albums.map((album, index) => (
               <div key={`${album.id}-${index}`} className="text-center space-y-2">
-                  <div className="relative mb-1">
-                    <div className="text-4xl font-bold text-white mb-1">
+                  <div className="relative mb-3">
+                    <div className="text-4xl font-bold text-white mb-4">
                       {index + 1}
                     </div>
                     <img
@@ -248,6 +278,33 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
   // Now Spinning view
   const currentAlbum = albums[currentIndex];
   const nextAlbums = albums.slice(currentIndex + 1, currentIndex + 3);
+  const recordClass =
+    swapPhase === 'record-out'
+      ? 'animate-record-peek-out opacity-100'
+      : swapPhase === 'record-in'
+      ? 'animate-record-peek-in opacity-100'
+      : swapPhase === 'fade'
+      ? 'translate-x-0 rotate-0 opacity-100'
+      : 'translate-x-[20%] rotate-[18deg] opacity-100';
+  const containerTransition =
+    swapPhase === 'fade'
+      ? 'opacity 0.3s ease'
+      : `opacity 0.3s ease${
+          tiltStyle.transition && tiltStyle.transition !== 'none'
+            ? `, ${tiltStyle.transition.replace('all', 'transform')}`
+            : ''
+        }`;
+  const containerStyle = {
+    ...tiltStyle,
+    opacity: swapPhase === 'fade' ? 0 : 1,
+    transition: containerTransition,
+  };
+  const recordAnimationStyle =
+    swapPhase === 'record-in'
+      ? { animationDelay: '0.3s', animationFillMode: 'both' }
+      : swapPhase === 'record-out'
+      ? { animationFillMode: 'both' }
+      : undefined;
 
   return (
     <div
@@ -255,7 +312,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
       style={{ background: 'linear-gradient(to bottom, #42423D 0%, #000000 100%)' }}
     >
       <div className="px-4 py-3 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Now Spinning: {initialStack.name}</h2>
+        <h2 className="text-lg font-semibold"><span className='opacity-50 pr-1'>Now Spinning</span>{initialStack.name}</h2>
         <div className="flex items-center gap-8">
           <button
             onClick={handleEndSessionClick}
@@ -271,34 +328,48 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
           </button>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
         <div className="flex flex-col items-center p-6 space-y-6">
         <div className="text-center">
-          <div className="relative inline-block mb-6 group">
+          <div className="relative inline-block mb-6">
             <div
-              className="w-96 h-96 max-w-[90vw] max-h-[90vw] relative"
+              className="relative w-96 h-96 max-w-[90vw] max-h-[90vw]"
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
-              style={tiltStyle}
+              style={containerStyle}
             >
-              <img
-                src={currentAlbum.album_art_url || '/placeholder-album.png'}
-                alt={currentAlbum.title}
-                className="w-full h-full rounded-lg object-cover shadow-2xl"
-              />
-              {/* Cellophane wrap effect */}
-              <div className="absolute inset-0 rounded-lg pointer-events-none overflow-hidden">
-                {/* Plastic texture overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/5"></div>
-                {/* Shine effect */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-30 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                {/* Subtle wrinkles/creases */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-white/10 via-transparent to-transparent opacity-40"></div>
-                <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-white/8 via-transparent to-transparent opacity-30"></div>
-                {/* Edge highlights */}
-                <div className="absolute inset-0 rounded-lg" style={{
-                  boxShadow: 'inset 0 0 20px rgba(255,255,255,0.1), inset 0 0 40px rgba(255,255,255,0.05)'
-                }}></div>
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                <div
+                  className={`w-full h-full ${recordClass}`}
+                  style={recordAnimationStyle}
+                >
+                  <img
+                    src="/record.png"
+                    alt=""
+                    className="w-full h-full rounded-full object-cover drop-shadow-2xl animate-spin [animation-duration:3s]"
+                  />
+                  <div
+                    className="absolute inset-0 rounded-full pointer-events-none"
+                    style={{
+                      backgroundImage:
+                        'linear-gradient(-45deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.18), rgba(255,255,255,0) 70%), linear-gradient(-48deg, rgba(255,255,255,0) 45%, rgba(255,255,255,0.12), rgba(255,255,255,0) 55%), radial-gradient(circle at top left, rgba(0,0,0,0.4) 20%, rgba(0,0,0,0) 80%), radial-gradient(circle at bottom right, rgba(0,0,0,0.35) 20%, rgba(0,0,0,0) 80%)',
+                      mixBlendMode: 'screen',
+                      opacity: 0.6,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Album Art */}
+              <div
+                className="relative z-10 w-full h-full cursor-pointer"
+                onClick={(e) => handleShowDetails(currentAlbum, e)}
+              >
+                <img
+                  src={currentAlbum.album_art_url || '/placeholder-album.png'}
+                  alt={currentAlbum.title}
+                  className="w-full h-full rounded-lg object-cover shadow-2xl"
+                />
               </div>
             </div>
             {nextAlbums.length > 0 && (
@@ -325,15 +396,15 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
             <button
               onClick={handlePrevious}
               disabled={currentIndex === 0}
-              className="w-16 h-16 rounded-full bg-gray-800 disabled:opacity-30 hover:bg-gray-700 flex items-center justify-center text-2xl"
+              className="w-16 h-16 rounded-full bg-gray-800 disabled:opacity-30 hover:bg-gray-700 flex items-center justify-center"
             >
-              ←
+              <Icon name="chevron-left" size={32} />
             </button>
             <button
               onClick={handleNext}
-              className="w-16 h-16 rounded-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center text-2xl"
+              className="w-16 h-16 rounded-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center"
             >
-              →
+              <Icon name="chevron-right" size={32} />
             </button>
           </div>
         </div>
@@ -344,23 +415,25 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
             {albums.map((album, index) => (
               <div
                 key={`${album.id}-${index}`}
-                onClick={() => setCurrentIndex(index)}
-                className={`group relative flex items-center gap-3 p-3 rounded cursor-pointer ${
+                onClick={() => {
+                  if (index !== currentIndex) {
+                    handleNext(index);
+                  }
+                }}
+                className={`group relative flex items-center gap-5 p-3 rounded ${
                   index === currentIndex
-                    ? 'bg-yellow-400 text-black'
-                    : album.played || album.skipped
-                    ? 'bg-gray-800 text-gray-400'
-                    : 'bg-gray-900 hover:bg-gray-800'
-                }`}
+                    ? 'text-yellow-400'
+                    : 'hover:bg-gray-800 cursor-pointer'
+                } ${album.played || album.skipped ? 'text-gray-400' : ''}`}
               >
                 <img
                   src={album.album_art_url || '/placeholder-album.png'}
                   alt=""
-                  className="w-12 h-12 rounded object-cover"
+                  className="w-16 h-16 rounded object-cover"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{album.title}</p>
-                  <p className="text-xs opacity-75 truncate">{album.artist}</p>
+                  <p className="font-semibold text-m truncate">{album.title}</p>
+                  <p className="text-sm opacity-75 truncate">{album.artist}</p>
                 </div>
                 {(album.played || album.skipped) && (
                   <span className="text-xs">
@@ -408,7 +481,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
         </div>
       </div>
 
-      {showPrompt && (
+      {showPrompt && showPrompt.show && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
           <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md space-y-4 border border-gray-800">
             <h3 className="text-lg font-semibold">Mark album as…</h3>
@@ -430,7 +503,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
               </button>
             </div>
             <button
-              onClick={() => setShowPrompt(false)}
+              onClick={() => setShowPrompt({ show: false, targetIndex: null })}
               disabled={promptPending}
               className="w-full text-sm text-gray-400 hover:text-white"
             >
