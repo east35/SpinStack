@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const requireAuth = require('../middleware/auth');
 const cacheService = require('../services/cache');
+const recommendationsService = require('../services/recommendations');
 
 // All routes require authentication
 router.use(requireAuth);
@@ -490,6 +491,452 @@ router.post('/mark-played', async (req, res) => {
   } catch (error) {
     console.error('Mark played error:', error);
     res.status(500).json({ error: 'Failed to mark album' });
+  }
+});
+
+// ============================================
+// CUSTOM STACKS ENDPOINTS
+// ============================================
+
+// Get all custom stacks for the user
+router.get('/custom', async (req, res) => {
+  try {
+    const userId = req.session.userId;
+
+    const result = await db.query(
+      `SELECT s.id, s.name, s.created_at, s.updated_at,
+              COALESCE(
+                json_agg(
+                  json_build_object(
+                    'id', vr.id,
+                    'title', vr.title,
+                    'artist', vr.artist,
+                    'album_art_url', vr.album_art_url,
+                    'year', vr.year,
+                    'label', vr.label,
+                    'genres', vr.genres,
+                    'styles', vr.styles,
+                    'listened_count', vr.listened_count,
+                    'is_liked', vr.is_liked
+                  ) ORDER BY si.position
+                ) FILTER (WHERE vr.id IS NOT NULL),
+                '[]'
+              ) as albums,
+              COUNT(si.id) as album_count
+       FROM stacks s
+       LEFT JOIN stack_items si ON s.id = si.stack_id
+       LEFT JOIN vinyl_records vr ON si.vinyl_record_id = vr.id
+       WHERE s.user_id = $1
+         AND s.type = 'custom'
+         AND s.name IS NOT NULL
+         AND s.name != ''
+         AND s.name != 'Untitled Stack'
+       GROUP BY s.id, s.name, s.created_at, s.updated_at
+       HAVING COUNT(si.id) = 8
+       ORDER BY s.created_at DESC`,
+      [userId]
+    );
+
+    const stacks = result.rows.map(row => ({
+      id: `custom-${row.id}`,
+      stackId: row.id,
+      name: row.name,
+      type: 'custom',
+      albums: row.albums,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    }));
+
+    res.json({ stacks });
+  } catch (error) {
+    console.error('Get custom stacks error:', error);
+    res.status(500).json({ error: 'Failed to fetch custom stacks' });
+  }
+});
+
+// Get a single custom stack (in-progress draft)
+router.get('/custom/draft', async (req, res) => {
+  try {
+    const userId = req.session.userId;
+
+    // Get the most recent draft stack (unnamed OR incomplete - less than 8 albums)
+    const result = await db.query(
+      `SELECT s.id, s.name, s.created_at,
+              COALESCE(
+                json_agg(
+                  json_build_object(
+                    'id', vr.id,
+                    'title', vr.title,
+                    'artist', vr.artist,
+                    'album_art_url', vr.album_art_url,
+                    'year', vr.year,
+                    'label', vr.label,
+                    'genres', vr.genres,
+                    'styles', vr.styles,
+                    'listened_count', vr.listened_count,
+                    'is_liked', vr.is_liked
+                  ) ORDER BY si.position
+                ) FILTER (WHERE vr.id IS NOT NULL),
+                '[]'
+              ) as albums,
+              COUNT(si.id) as album_count
+       FROM stacks s
+       LEFT JOIN stack_items si ON s.id = si.stack_id
+       LEFT JOIN vinyl_records vr ON si.vinyl_record_id = vr.id
+       WHERE s.user_id = $1
+         AND s.type = 'custom'
+         AND (s.name IS NULL OR s.name = '' OR s.name = 'Untitled Stack')
+       GROUP BY s.id, s.name, s.created_at
+       HAVING COUNT(si.id) < 8
+       ORDER BY s.created_at DESC
+       LIMIT 1`,
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ draft: null });
+    }
+
+    const row = result.rows[0];
+    const draft = {
+      id: row.id,
+      albums: row.albums,
+      createdAt: row.created_at
+    };
+
+    res.json({ draft });
+  } catch (error) {
+    console.error('Get draft stack error:', error);
+    res.status(500).json({ error: 'Failed to fetch draft stack' });
+  }
+});
+
+// Create a new custom stack (draft)
+router.post('/custom/create', async (req, res) => {
+  try {
+    const userId = req.session.userId;
+
+    // Create a new draft stack
+    const result = await db.query(
+      `INSERT INTO stacks (user_id, type, name)
+       VALUES ($1, 'custom', '')
+       RETURNING id, created_at`,
+      [userId]
+    );
+
+    const stackId = result.rows[0].id;
+
+    res.json({
+      stackId,
+      albums: [],
+      createdAt: result.rows[0].created_at
+    });
+  } catch (error) {
+    console.error('Create custom stack error:', error);
+    res.status(500).json({ error: 'Failed to create custom stack' });
+  }
+});
+
+// Add album to custom stack
+router.post('/custom/:stackId/add-album', async (req, res) => {
+  try {
+    const { stackId } = req.params;
+    const { albumId } = req.body;
+    const userId = req.session.userId;
+
+    // Verify stack belongs to user and is custom type
+    const stackCheck = await db.query(
+      'SELECT id FROM stacks WHERE id = $1 AND user_id = $2 AND type = $3',
+      [stackId, userId, 'custom']
+    );
+
+    if (stackCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Stack not found' });
+    }
+
+    // Check if album already in stack
+    const existingCheck = await db.query(
+      'SELECT id FROM stack_items WHERE stack_id = $1 AND vinyl_record_id = $2',
+      [stackId, albumId]
+    );
+
+    if (existingCheck.rows.length > 0) {
+      return res.status(400).json({ error: 'Album already in stack' });
+    }
+
+    // Get current album count
+    const countResult = await db.query(
+      'SELECT COUNT(*) as count FROM stack_items WHERE stack_id = $1',
+      [stackId]
+    );
+
+    const currentCount = parseInt(countResult.rows[0].count);
+
+    // Enforce 8 album limit
+    if (currentCount >= 8) {
+      return res.status(400).json({ error: 'Stack is full (maximum 8 albums)' });
+    }
+
+    // Add album to stack
+    const position = currentCount + 1;
+    await db.query(
+      `INSERT INTO stack_items (stack_id, vinyl_record_id, position)
+       VALUES ($1, $2, $3)`,
+      [stackId, albumId, position]
+    );
+
+    // Update stack timestamp
+    await db.query(
+      'UPDATE stacks SET updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+      [stackId]
+    );
+
+    // Get updated stack with all albums
+    const stackResult = await db.query(
+      `SELECT COALESCE(
+                json_agg(
+                  json_build_object(
+                    'id', vr.id,
+                    'title', vr.title,
+                    'artist', vr.artist,
+                    'album_art_url', vr.album_art_url,
+                    'year', vr.year,
+                    'label', vr.label,
+                    'genres', vr.genres,
+                    'styles', vr.styles,
+                    'listened_count', vr.listened_count,
+                    'is_liked', vr.is_liked
+                  ) ORDER BY si.position
+                ),
+                '[]'
+              ) as albums
+       FROM stack_items si
+       JOIN vinyl_records vr ON si.vinyl_record_id = vr.id
+       WHERE si.stack_id = $1`,
+      [stackId]
+    );
+
+    const albums = stackResult.rows[0].albums;
+    const albumIds = albums.map(a => a.id);
+
+    // Get recommendations if we have albums
+    let suggestions = [];
+    if (albumIds.length > 0 && albumIds.length < 8) {
+      suggestions = await recommendationsService.getSimilarAlbums(userId, albumIds, 12);
+    }
+
+    res.json({
+      success: true,
+      albums,
+      suggestions,
+      canSave: albums.length === 8
+    });
+  } catch (error) {
+    console.error('Add album to stack error:', error);
+    res.status(500).json({ error: 'Failed to add album to stack' });
+  }
+});
+
+// Remove album from custom stack
+router.delete('/custom/:stackId/albums/:albumId', async (req, res) => {
+  try {
+    const { stackId, albumId } = req.params;
+    const userId = req.session.userId;
+
+    // Verify stack belongs to user
+    const stackCheck = await db.query(
+      'SELECT id FROM stacks WHERE id = $1 AND user_id = $2 AND type = $3',
+      [stackId, userId, 'custom']
+    );
+
+    if (stackCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Stack not found' });
+    }
+
+    // Remove album from stack
+    await db.query(
+      'DELETE FROM stack_items WHERE stack_id = $1 AND vinyl_record_id = $2',
+      [stackId, albumId]
+    );
+
+    // Reorder positions
+    await db.query(
+      `UPDATE stack_items si
+       SET position = subquery.new_position
+       FROM (
+         SELECT id, ROW_NUMBER() OVER (ORDER BY position) as new_position
+         FROM stack_items
+         WHERE stack_id = $1
+       ) AS subquery
+       WHERE si.id = subquery.id`,
+      [stackId]
+    );
+
+    // Update stack timestamp
+    await db.query(
+      'UPDATE stacks SET updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+      [stackId]
+    );
+
+    // Get updated stack
+    const stackResult = await db.query(
+      `SELECT COALESCE(
+                json_agg(
+                  json_build_object(
+                    'id', vr.id,
+                    'title', vr.title,
+                    'artist', vr.artist,
+                    'album_art_url', vr.album_art_url,
+                    'year', vr.year,
+                    'label', vr.label,
+                    'genres', vr.genres,
+                    'styles', vr.styles,
+                    'listened_count', vr.listened_count,
+                    'is_liked', vr.is_liked
+                  ) ORDER BY si.position
+                ),
+                '[]'
+              ) as albums
+       FROM stack_items si
+       JOIN vinyl_records vr ON si.vinyl_record_id = vr.id
+       WHERE si.stack_id = $1`,
+      [stackId]
+    );
+
+    const albums = stackResult.rows[0].albums;
+    const albumIds = albums.map(a => a.id);
+
+    // Get updated recommendations
+    let suggestions = [];
+    if (albumIds.length > 0 && albumIds.length < 8) {
+      suggestions = await recommendationsService.getSimilarAlbums(userId, albumIds, 12);
+    }
+
+    res.json({
+      success: true,
+      albums,
+      suggestions,
+      canSave: albums.length === 8
+    });
+  } catch (error) {
+    console.error('Remove album from stack error:', error);
+    res.status(500).json({ error: 'Failed to remove album from stack' });
+  }
+});
+
+// Save and name a custom stack
+router.post('/custom/:stackId/save', async (req, res) => {
+  try {
+    const { stackId } = req.params;
+    const { name } = req.body;
+    const userId = req.session.userId;
+
+    // Validate name
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({ error: 'Stack name is required' });
+    }
+
+    if (name.length > 100) {
+      return res.status(400).json({ error: 'Stack name must be 100 characters or less' });
+    }
+
+    // Verify stack belongs to user
+    const stackCheck = await db.query(
+      'SELECT id FROM stacks WHERE id = $1 AND user_id = $2 AND type = $3',
+      [stackId, userId, 'custom']
+    );
+
+    if (stackCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Stack not found' });
+    }
+
+    // Verify stack has exactly 8 albums
+    const countResult = await db.query(
+      'SELECT COUNT(*) as count FROM stack_items WHERE stack_id = $1',
+      [stackId]
+    );
+
+    if (parseInt(countResult.rows[0].count) !== 8) {
+      return res.status(400).json({ error: 'Stack must have exactly 8 albums to save' });
+    }
+
+    // Update stack with name
+    await db.query(
+      'UPDATE stacks SET name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      [name.trim(), stackId]
+    );
+
+    res.json({ success: true, name: name.trim() });
+  } catch (error) {
+    console.error('Save custom stack error:', error);
+    res.status(500).json({ error: 'Failed to save custom stack' });
+  }
+});
+
+// Delete a custom stack
+router.delete('/custom/:stackId', async (req, res) => {
+  try {
+    const { stackId } = req.params;
+    const userId = req.session.userId;
+
+    // Verify stack belongs to user
+    const stackCheck = await db.query(
+      'SELECT id FROM stacks WHERE id = $1 AND user_id = $2 AND type = $3',
+      [stackId, userId, 'custom']
+    );
+
+    if (stackCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Stack not found' });
+    }
+
+    // Delete stack items first (foreign key constraint)
+    await db.query('DELETE FROM stack_items WHERE stack_id = $1', [stackId]);
+
+    // Delete stack
+    await db.query('DELETE FROM stacks WHERE id = $1', [stackId]);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete custom stack error:', error);
+    res.status(500).json({ error: 'Failed to delete custom stack' });
+  }
+});
+
+// Get recommendations for a draft stack
+router.get('/custom/:stackId/recommendations', async (req, res) => {
+  try {
+    const { stackId } = req.params;
+    const userId = req.session.userId;
+
+    // Verify stack belongs to user
+    const stackCheck = await db.query(
+      'SELECT id FROM stacks WHERE id = $1 AND user_id = $2 AND type = $3',
+      [stackId, userId, 'custom']
+    );
+
+    if (stackCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Stack not found' });
+    }
+
+    // Get album IDs in stack
+    const albumsResult = await db.query(
+      'SELECT vinyl_record_id FROM stack_items WHERE stack_id = $1',
+      [stackId]
+    );
+
+    const albumIds = albumsResult.rows.map(row => row.vinyl_record_id);
+
+    if (albumIds.length === 0) {
+      return res.json({ suggestions: [] });
+    }
+
+    // Get recommendations
+    const suggestions = await recommendationsService.getSimilarAlbums(userId, albumIds, 12);
+
+    res.json({ suggestions });
+  } catch (error) {
+    console.error('Get recommendations error:', error);
+    res.status(500).json({ error: 'Failed to get recommendations' });
   }
 });
 

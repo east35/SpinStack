@@ -24,7 +24,7 @@ const getGenreColor = (genre) => {
   return GENRE_COLORS[genre] || 'bg-gray-500/20 text-gray-400';
 };
 
-export default function AlbumDetailModal({ album, onClose, onToggleLike, onMarkPlayed }) {
+export default function AlbumDetailModal({ album, onClose, onToggleLike, onMarkPlayed, onAddToStack }) {
   const [isClosing, setIsClosing] = useState(false);
 
   const handleClose = () => {
@@ -79,10 +79,10 @@ export default function AlbumDetailModal({ album, onClose, onToggleLike, onMarkP
             </div>
 
             {/* Action Buttons */}
-            <div className="flex-co gap-3 mt-4">
+            <div className="flex-col gap-3 mt-4">
               <button
                 onClick={() => onToggleLike(album.id)}
-                className="flex-1 btn-primary flex items-center justify-center gap-2 min-h-[44px] w-full mb-4"
+                className="flex-1 btn-primary flex items-center justify-center gap-2 min-h-[44px] w-full mb-3"
               >
                 <Icon
                   name="heart"
