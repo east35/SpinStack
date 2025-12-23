@@ -25,7 +25,14 @@ export default function AuthCallback() {
 
       try {
         // Pass both verifier and state to backend
-        await auth.callback(oauthVerifier, state);
+        const response = await auth.callback(oauthVerifier, state);
+
+        // Store session ID if provided (fallback for when cookies don't work)
+        if (response.data.sessionId) {
+          localStorage.setItem('vinyl_session_id', response.data.sessionId);
+          console.log('✅ Session ID stored:', response.data.sessionId);
+        }
+
         // Clear stored state and set completion flag
         sessionStorage.removeItem('oauth_state');
         sessionStorage.removeItem('oauth_in_progress');

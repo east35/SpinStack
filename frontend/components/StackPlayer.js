@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { stacks as stacksApi, collection } from '../lib/api';
 import AlbumDetailModal from './AlbumDetailModal';
 import Icon from './Icon';
+import VinylRecord from './VinylRecord';
 
 export default function StackPlayer({ stack: initialStack, onClose, onMinimize, onMaximize }) {
   const [view, setView] = useState('pull'); // 'pull', 'spinning', or 'minimized'
@@ -19,7 +20,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
   const [showEndSessionPrompt, setShowEndSessionPrompt] = useState(false);
   const [tiltStyle, setTiltStyle] = useState({});
   const [isSwapping, setIsSwapping] = useState(false);
-  const [swapPhase, setSwapPhase] = useState('idle'); // 'idle', 'record-out', 'fade', 'record-in'
+  const [swapPhase, setSwapPhase] = useState('idle'); // 'idle', 'cover', 'hold', 'fade', 'hold-reveal', 'slide'
 
   // Reset state when stack changes
   useEffect(() => {
@@ -48,6 +49,23 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
   const handleStartSpinning = () => {
     setView('spinning');
     setCurrentIndex(0);
+    setSwapPhase('cover');
+    // Auto-reveal the first record after a short cover + fade sequence.
+    setTimeout(() => {
+      setSwapPhase('hold');
+      setTimeout(() => {
+        setSwapPhase('fade');
+        setTimeout(() => {
+          setSwapPhase('hold-reveal');
+          setTimeout(() => {
+            setSwapPhase('slide');
+            setTimeout(() => {
+              setSwapPhase('idle');
+            }, 500);
+          }, 1000);
+        }, 300);
+      }, 600);
+    }, 200);
   };
 
   const handleNext = (targetIndex = null) => {
@@ -62,23 +80,30 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
   const runSwapToIndex = (nextIndex) => {
     if (isSwapping) return;
     setIsSwapping(true);
-    setSwapPhase('record-out');
+    setSwapPhase('cover');
 
-    // Phase 1: Record slides out (500ms)
+    // Phase 1: Sleeve covers record (200ms)
     setTimeout(() => {
-      setSwapPhase('fade');
-      // Phase 2: Album art fades during record out (300ms)
+      setSwapPhase('hold');
+      // Phase 2: Hold sleeve for a beat (600ms)
       setTimeout(() => {
-        setCurrentIndex(nextIndex);
-        setSwapPhase('record-in');
-        // Phase 3: Record slides back in (500ms)
+        setSwapPhase('fade');
+        // Phase 3: Sleeve fades out (300ms)
         setTimeout(() => {
-          setSwapPhase('idle');
-          setIsSwapping(false);
-          setPromptPending(false);
-        }, 500);
-      }, 300);
-    }, 500);
+          setCurrentIndex(nextIndex);
+          setSwapPhase('hold-reveal');
+          // Phase 4: Hold the new sleeve (1000ms), then slide left (500ms)
+          setTimeout(() => {
+            setSwapPhase('slide');
+            setTimeout(() => {
+              setSwapPhase('idle');
+              setIsSwapping(false);
+              setPromptPending(false);
+            }, 500);
+          }, 1000);
+        }, 300);
+      }, 600);
+    }, 200);
   };
 
   const handleResolveNext = async (action) => {
@@ -86,7 +111,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
     const currentAlbum = albums[currentIndex];
     const played = action === 'played';
     const skipped = action === 'skipped';
-    const targetIndex = typeof showPrompt === 'object' ? showPrompt.targetIndex : currentIndex + 1;
+    const targetIndex = showPrompt.targetIndex !== null ? showPrompt.targetIndex : currentIndex + 1;
 
     try {
       setPromptPending(true);
@@ -102,7 +127,14 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
 
       setShowPrompt({ show: false, targetIndex: null });
 
-      if (targetIndex < albums.length) {
+      console.log('🔍 Debug:', {
+        currentIndex,
+        targetIndex,
+        albumsLength: albums.length,
+        willAdvance: targetIndex <= albums.length - 1
+      });
+
+      if (targetIndex <= albums.length - 1) {
         runSwapToIndex(targetIndex);
       } else {
         setPromptPending(false);
@@ -278,14 +310,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
   // Now Spinning view
   const currentAlbum = albums[currentIndex];
   const nextAlbums = albums.slice(currentIndex + 1, currentIndex + 3);
-  const recordClass =
-    swapPhase === 'record-out'
-      ? 'animate-record-peek-out opacity-100'
-      : swapPhase === 'record-in'
-      ? 'animate-record-peek-in opacity-100'
-      : swapPhase === 'fade'
-      ? 'translate-x-0 rotate-0 opacity-100'
-      : 'translate-x-[20%] rotate-[18deg] opacity-100';
+  const recordClass = 'translate-x-0 rotate-0';
   const containerTransition =
     swapPhase === 'fade'
       ? 'opacity 0.3s ease'
@@ -296,15 +321,18 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
         }`;
   const containerStyle = {
     ...tiltStyle,
-    opacity: swapPhase === 'fade' ? 0 : 1,
+    opacity: swapPhase === 'fade' && isSwapping ? 0 : 1,
     transition: containerTransition,
   };
-  const recordAnimationStyle =
-    swapPhase === 'record-in'
-      ? { animationDelay: '0.3s', animationFillMode: 'both' }
-      : swapPhase === 'record-out'
-      ? { animationFillMode: 'both' }
-      : undefined;
+  const sleeveOpacity =
+    swapPhase === 'slide' || swapPhase === 'idle' ? 0 : 1;
+  const recordAnimationStyle = undefined;
+  const recordVisibilityClass =
+    swapPhase === 'hold' || swapPhase === 'fade' ? 'opacity-0' : 'opacity-100';
+  const sleeveOffsetClass =
+    swapPhase === 'slide' || swapPhase === 'idle'
+      ? '-translate-x-[110%]'
+      : 'translate-x-0';
 
   return (
     <div
@@ -338,32 +366,25 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
               onMouseLeave={handleMouseLeave}
               style={containerStyle}
             >
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                 <div
-                  className={`w-full h-full ${recordClass}`}
+                  className={`w-full h-full transition-opacity duration-300 ${recordVisibilityClass} ${recordClass}`}
                   style={recordAnimationStyle}
                 >
-                  <img
-                    src="/record.png"
-                    alt=""
-                    className="w-full h-full rounded-full object-cover drop-shadow-2xl animate-spin [animation-duration:3s]"
-                  />
-                  <div
-                    className="absolute inset-0 rounded-full pointer-events-none"
-                    style={{
-                      backgroundImage:
-                        'linear-gradient(-45deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.18), rgba(255,255,255,0) 70%), linear-gradient(-48deg, rgba(255,255,255,0) 45%, rgba(255,255,255,0.12), rgba(255,255,255,0) 55%), radial-gradient(circle at top left, rgba(0,0,0,0.4) 20%, rgba(0,0,0,0) 80%), radial-gradient(circle at bottom right, rgba(0,0,0,0.35) 20%, rgba(0,0,0,0) 80%)',
-                      mixBlendMode: 'screen',
-                      opacity: 0.6,
-                    }}
+                  <VinylRecord
+                    size={384}
+                    spinning={true}
+                    className="drop-shadow-2xl"
+                    coverUrl={currentAlbum.album_art_url || undefined}
                   />
                 </div>
               </div>
 
               {/* Album Art */}
               <div
-                className="relative z-10 w-full h-full cursor-pointer"
+                className={`relative z-20 w-full h-full cursor-pointer transition-transform duration-500 ease-out ${sleeveOffsetClass}`}
                 onClick={(e) => handleShowDetails(currentAlbum, e)}
+                style={{ opacity: sleeveOpacity, transition: 'opacity 0.3s ease, transform 0.5s ease-out' }}
               >
                 <img
                   src={currentAlbum.album_art_url || '/placeholder-album.png'}
@@ -401,7 +422,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
               <Icon name="chevron-left" size={32} />
             </button>
             <button
-              onClick={handleNext}
+              onClick={() => handleNext()}
               className="w-16 h-16 rounded-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center"
             >
               <Icon name="chevron-right" size={32} />
@@ -410,7 +431,6 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
         </div>
 
         <div className="w-full max-w-4xl">
-          <h3 className="text-sm font-semibold mb-3 uppercase text-gray-400">Stack</h3>
           <div className="space-y-2">
             {albums.map((album, index) => (
               <div

@@ -48,6 +48,8 @@ export default function Home() {
   const handleLogout = async () => {
     try {
       await auth.logout();
+      // Clear session ID from localStorage
+      localStorage.removeItem('vinyl_session_id');
       setUser(null);
     } catch (error) {
       console.error('Logout failed:', error);

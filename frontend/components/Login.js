@@ -9,6 +9,13 @@ export default function Login({ onLogin }) {
   const handleLogin = async () => {
     try {
       setLoading(true);
+
+      // Clear any existing session data before starting new login
+      localStorage.removeItem('vinyl_session_id');
+      sessionStorage.removeItem('oauth_state');
+      sessionStorage.removeItem('oauth_in_progress');
+      sessionStorage.removeItem('oauth_completed');
+
       const response = await auth.login();
       // Store state in sessionStorage for the callback
       if (response.data.state) {

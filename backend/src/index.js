@@ -28,6 +28,9 @@ if (process.env.REDIS_URL) {
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Session-Id'],
+  exposedHeaders: ['Set-Cookie'],
 }));
 
 app.use(express.json());
@@ -39,12 +42,15 @@ const sessionConfig = {
   resave: false,
   saveUninitialized: true, // Create session even if not modified (needed for OAuth)
   cookie: {
-    secure: false, // Must be false for HTTP
-    httpOnly: true,
+    secure: false, // Must be false for HTTP (would need true for sameSite: 'none')
+    httpOnly: false, // Allow JavaScript access for mobile compatibility debugging
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-    sameSite: 'lax', // Lax allows cookies on GET redirects from external sites
+    sameSite: 'lax', // 'lax' works better for mobile than 'none' without HTTPS
+    path: '/', // Ensure cookie is sent for all paths
     // Don't set domain - let browser use the request hostname
   },
+  name: 'vinyl.sid', // Custom session name
+  proxy: true, // Trust proxy headers
 };
 
 if (redisClient) {
@@ -52,6 +58,37 @@ if (redisClient) {
 }
 
 app.use(session(sessionConfig));
+
+// Custom middleware to handle session ID from header (fallback for mobile)
+app.use((req, res, next) => {
+  const sessionIdFromHeader = req.headers['x-session-id'];
+  if (sessionIdFromHeader && sessionIdFromHeader !== req.sessionID) {
+    // Load session data from store using header session ID
+    console.log('🔧 Using session ID from header:', sessionIdFromHeader);
+    req.sessionStore.get(sessionIdFromHeader, (err, sessionData) => {
+      if (err) {
+        console.error('❌ Error loading session from header:', err);
+        return next();
+      }
+      if (sessionData) {
+        // Create a new session with the loaded data
+        req.sessionStore.createSession(req, sessionData);
+        req.sessionID = sessionIdFromHeader;
+
+        // Mark this session as header-based to prevent touch() calls
+        req.session._headerBased = true;
+
+        // Override touch() to prevent errors
+        req.session.touch = function() { return this; };
+
+        console.log('✅ Session loaded from header, userId:', sessionData.userId);
+      }
+      next();
+    });
+  } else {
+    next();
+  }
+});
 
 // Routes
 app.get('/health', (req, res) => {

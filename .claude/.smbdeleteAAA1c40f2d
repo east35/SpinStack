@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl:*)",
+      "Bash(psql:*)",
+      "Bash(docker exec:*)",
+      "Bash(redis-cli:*)",
+      "Bash(while read sess)",
+      "Bash(do echo \"=== $sess ===\")",
+      "Bash(done)",
+      "Bash(node -e:*)",
+      "Bash(tail:*)",
+      "Bash(lsof:*)",
+      "Bash(node -c:*)",
+      "Bash(DATABASE_URL=postgresql://vinyl_user:vinyl_pass@localhost:5432/vinyl_collection REDIS_URL=redis://127.0.0.1:6379 timeout 5 node:*)",
+      "Bash(pkill:*)",
+      "Bash(xargs kill -9)",
+      "Bash(timeout 5 curl:*)",
+      "Bash(cat:*)",
+      "Bash(rm:*)",
+      "Bash(git add:*)",
+      "Bash(git rm:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(git checkout:*)",
+      "Bash(NODE_PATH=backend/node_modules node:*)",
+      "Bash(git reset:*)",
+      "Bash(npm run dev:*)",
+      "Bash(node scripts/export-mock-data.js:*)",
+      "Bash(node ../scripts/export-mock-data.js:*)",
+      "Bash(npm install)",
+      "Bash(DATABASE_URL=postgresql://vinyl_user:vinyl_pass@localhost:5432/vinyl_collection NODE_PATH=backend/node_modules node:*)",
+      "Bash(git push:*)",
+      "Bash(./start-local.sh:*)",
+      "Bash(docker ps:*)",
+      "Bash(git merge:*)",
+      "Bash(/usr/local/bin/docker-compose --env-file .env.docker up --build -d)"
+    ]
+  }
+}

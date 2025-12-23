@@ -5,6 +5,15 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Add interceptor to include session ID in headers if available
+api.interceptors.request.use((config) => {
+  const sessionId = typeof window !== 'undefined' ? localStorage.getItem('vinyl_session_id') : null;
+  if (sessionId) {
+    config.headers['X-Session-Id'] = sessionId;
+  }
+  return config;
+});
+
 export const auth = {
   login: () => api.get('/api/auth/login'),
   callback: (oauthVerifier, state) => api.post('/api/auth/callback', { oauth_verifier: oauthVerifier, state }),

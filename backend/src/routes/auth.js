@@ -150,6 +150,7 @@ router.post('/callback', async (req, res) => {
             id: user.id,
             username: user.discogs_username,
           },
+          sessionId: req.sessionID, // Return session ID for manual cookie management
         });
       });
     });

@@ -20,12 +20,12 @@ module.exports = {
       },
       keyframes: {
         recordPeekOut: {
-          '0%': { transform: 'translateX(20%) rotate(18deg)' },
-          '100%': { transform: 'translateX(0) rotate(0deg)' },
+          '0%': { transform: 'translateX(0) rotate(0deg)' },
+          '100%': { transform: 'translateX(50%) rotate(12deg)' },
         },
         recordPeekIn: {
-          '0%': { transform: 'translateX(0) rotate(0deg)' },
-          '100%': { transform: 'translateX(20%) rotate(18deg)' },
+          '0%': { transform: 'translateX(50%) rotate(12deg)' },
+          '100%': { transform: 'translateX(0) rotate(0deg)' },
         },
         recordRock: {
           '0%': { transform: 'rotate(-45deg)' },
