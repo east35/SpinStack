@@ -360,6 +360,52 @@ class MockDataService {
       weekStartDate: new Date().toISOString().split('T')[0],
     };
   }
+
+  /**
+   * Get custom stacks (mock data for demo)
+   */
+  getCustomStacks() {
+    // Return 2-3 mock custom stacks using albums from the collection
+    const albums = this.data.collection;
+    if (albums.length < 24) {
+      return { stacks: [] };
+    }
+
+    const customStacks = [
+      {
+        id: 'custom-1',
+        name: 'Chill Vibes',
+        type: 'custom',
+        created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
+        albums: albums.slice(0, 8).map(a => ({
+          ...a,
+          album_art_url: a.album_art_url || a.image_url
+        }))
+      },
+      {
+        id: 'custom-2',
+        name: 'Workout Mix',
+        type: 'custom',
+        created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days ago
+        albums: albums.slice(8, 16).map(a => ({
+          ...a,
+          album_art_url: a.album_art_url || a.image_url
+        }))
+      },
+      {
+        id: 'custom-3',
+        name: 'Weekend Favorites',
+        type: 'custom',
+        created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+        albums: albums.slice(16, 24).map(a => ({
+          ...a,
+          album_art_url: a.album_art_url || a.image_url
+        }))
+      }
+    ];
+
+    return { stacks: customStacks };
+  }
 }
 
 // Export singleton instance

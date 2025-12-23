@@ -82,6 +82,15 @@ export const demoStacks = {
     }
     return mockResponse({ success: true });
   },
+  // Custom stacks - return mock data for demo
+  getCustom: () => mockResponse(mockDataService.getCustomStacks()),
+  getDraft: () => mockResponse({ albums: [], stackId: 'demo-draft-1' }),
+  createCustom: () => mockResponse({ stackId: 'demo-draft-' + Date.now(), albums: [] }),
+  addAlbumToStack: (stackId, albumId) => mockResponse({ success: true }),
+  removeAlbumFromStack: (stackId, albumId) => mockResponse({ success: true }),
+  saveCustomStack: (stackId, name) => mockResponse({ success: true, stackId, name }),
+  deleteCustomStack: (stackId) => mockResponse({ success: true }),
+  getRecommendations: (stackId) => mockResponse({ suggestions: [] }),
 };
 
 export const demoStats = {
