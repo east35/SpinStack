@@ -50,6 +50,7 @@ export default function CollectionGrid({ onOpenStackBuilder }) {
   const [autoSyncAttempted, setAutoSyncAttempted] = useState(false);
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [imageLoadingStates, setImageLoadingStates] = useState({});
   const observerTarget = useRef(null);
   const searchInputRef = useRef(null);
   const perPage = 50;
@@ -144,7 +145,8 @@ export default function CollectionGrid({ onOpenStackBuilder }) {
     setPage(0);
     setHasMore(true);
     loadCollection(true);
-  }, [searchQuery, selectedGenre, sort, loadCollection]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, selectedGenre, sort]);
 
   // Infinite scroll observer
   useEffect(() => {
@@ -307,11 +309,28 @@ export default function CollectionGrid({ onOpenStackBuilder }) {
                   onClick={() => setSelectedAlbum(record)}
                 >
                   {record.album_art_url ? (
-                    <img
-                      src={record.album_art_url}
-                      alt={record.title}
-                      className="w-full h-full object-cover transition-opacity duration-200 md:group-hover:opacity-70"
-                    />
+                    <>
+                      {imageLoadingStates[record.id] !== 'loaded' && imageLoadingStates[record.id] !== 'error' && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
+                        </div>
+                      )}
+                      <img
+                        src={record.album_art_url}
+                        alt={record.title}
+                        className={`w-full h-full object-cover transition-opacity duration-200 md:group-hover:opacity-70 ${
+                          imageLoadingStates[record.id] === 'loaded' ? 'opacity-100' : 'opacity-0'
+                        }`}
+                        loading="lazy"
+                        onLoad={() => setImageLoadingStates(prev => ({ ...prev, [record.id]: 'loaded' }))}
+                        onError={() => setImageLoadingStates(prev => ({ ...prev, [record.id]: 'error' }))}
+                      />
+                      {imageLoadingStates[record.id] === 'error' && (
+                        <div className="absolute inset-0 flex items-center justify-center text-gray-600 text-sm">
+                          No Image
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-600">
                       No Image

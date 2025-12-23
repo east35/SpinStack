@@ -365,9 +365,9 @@ class MockDataService {
    * Get custom stacks (mock data for demo)
    */
   getCustomStacks() {
-    // Return 2-3 mock custom stacks using albums from the collection
+    // Return 9 mock custom stacks using albums from the collection (4 shown on main + 5 more in manage = 9 total)
     const albums = this.data.collection;
-    if (albums.length < 24) {
+    if (albums.length < 72) {
       return { stacks: [] };
     }
 
@@ -398,6 +398,66 @@ class MockDataService {
         type: 'custom',
         created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
         albums: albums.slice(16, 24).map(a => ({
+          ...a,
+          album_art_url: a.album_art_url || a.image_url
+        }))
+      },
+      {
+        id: 'custom-4',
+        name: 'Late Night Jazz',
+        type: 'custom',
+        created_at: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(), // 21 days ago
+        albums: albums.slice(24, 32).map(a => ({
+          ...a,
+          album_art_url: a.album_art_url || a.image_url
+        }))
+      },
+      {
+        id: 'custom-5',
+        name: 'Road Trip Classics',
+        type: 'custom',
+        created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
+        albums: albums.slice(32, 40).map(a => ({
+          ...a,
+          album_art_url: a.album_art_url || a.image_url
+        }))
+      },
+      {
+        id: 'custom-6',
+        name: 'Sunday Morning',
+        type: 'custom',
+        created_at: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(), // 45 days ago
+        albums: albums.slice(40, 48).map(a => ({
+          ...a,
+          album_art_url: a.album_art_url || a.image_url
+        }))
+      },
+      {
+        id: 'custom-7',
+        name: 'Electronic Dreams',
+        type: 'custom',
+        created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(), // 60 days ago
+        albums: albums.slice(48, 56).map(a => ({
+          ...a,
+          album_art_url: a.album_art_url || a.image_url
+        }))
+      },
+      {
+        id: 'custom-8',
+        name: 'Throwback Hits',
+        type: 'custom',
+        created_at: new Date(Date.now() - 75 * 24 * 60 * 60 * 1000).toISOString(), // 75 days ago
+        albums: albums.slice(56, 64).map(a => ({
+          ...a,
+          album_art_url: a.album_art_url || a.image_url
+        }))
+      },
+      {
+        id: 'custom-9',
+        name: 'Deep Focus',
+        type: 'custom',
+        created_at: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days ago
+        albums: albums.slice(64, 72).map(a => ({
           ...a,
           album_art_url: a.album_art_url || a.image_url
         }))
