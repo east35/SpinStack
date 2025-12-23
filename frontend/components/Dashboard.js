@@ -34,12 +34,22 @@ export default function Dashboard({ user, onLogout }) {
   const handleSync = async () => {
     try {
       setSyncing(true);
+      console.log('Starting sync...');
       const response = await collection.sync();
-      alert(`Synced ${response.data.synced} records!`);
-      loadStats();
+      console.log('Sync response:', response.data);
+
+      const syncedCount = response.data.synced || 0;
+      const message = `Successfully synced ${syncedCount} record${syncedCount !== 1 ? 's' : ''}!`;
+
+      // Use both alert and console for better visibility
+      alert(message);
+      console.log(message);
+
+      await loadStats();
     } catch (error) {
       console.error('Sync failed:', error);
-      alert('Failed to sync collection. Please try again.');
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to sync collection. Please try again.';
+      alert(errorMessage);
     } finally {
       setSyncing(false);
     }

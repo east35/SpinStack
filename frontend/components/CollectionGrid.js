@@ -34,7 +34,7 @@ const getGenreColor = (genre) => {
   return GENRE_COLORS[genre] || 'bg-gray-500/20 text-gray-400';
 };
 
-export default function CollectionGrid() {
+export default function CollectionGrid({ onOpenStackBuilder }) {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -48,12 +48,12 @@ export default function CollectionGrid() {
   const [totalCount, setTotalCount] = useState(0);
   const [autoSyncing, setAutoSyncing] = useState(false);
   const [autoSyncAttempted, setAutoSyncAttempted] = useState(false);
-  const [imageLoadingStates, setImageLoadingStates] = useState({});
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [searchFocused, setSearchFocused] = useState(false);
   const observerTarget = useRef(null);
   const searchInputRef = useRef(null);
   const perPage = 50;
+
 
   const autoSyncCollection = async () => {
     try {
@@ -140,11 +140,11 @@ export default function CollectionGrid() {
 
   // Reset when filters change
   useEffect(() => {
+    setRecords([]);
     setPage(0);
     setHasMore(true);
     loadCollection(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, selectedGenre, sort]);
+  }, [searchQuery, selectedGenre, sort, loadCollection]);
 
   // Infinite scroll observer
   useEffect(() => {
@@ -169,16 +169,14 @@ export default function CollectionGrid() {
     if (page > 0) {
       loadCollection(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, loadCollection]);
 
   // Restore focus to search input after re-renders if it was focused
-  // Only restore on initial load, not during infinite scroll pagination
   useEffect(() => {
-    if (searchFocused && searchInputRef.current && !loadingMore && loading) {
+    if (searchFocused && searchInputRef.current) {
       searchInputRef.current.focus();
     }
-  }, [searchFocused, loading, loadingMore]);
+  }, [records, loading, loadingMore]);
 
   const handleToggleLike = async (recordId, e) => {
     if (e && e.stopPropagation) e.stopPropagation();
@@ -222,63 +220,76 @@ export default function CollectionGrid() {
     setSelectedAlbum(record);
   };
 
+  const handleAddToStack = async (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+
+    // Just open the builder - user can add albums there
+    if (onOpenStackBuilder) {
+      onOpenStackBuilder();
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-12">Loading collection...</div>;
   }
 
   return (
     <div className="space-y-6">
-      {/* Search bar - full width on mobile */}
-      <div className="w-full">
-        <input
-          ref={searchInputRef}
-          type="text"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          onFocus={() => setSearchFocused(true)}
-          onBlur={() => setSearchFocused(false)}
-          placeholder="Search your collection..."
-          className="bg-secondary rounded px-4 py-3 md:py-2 text-sm w-full min-h-[44px]"
-        />
-      </div>
-
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-        <div className="flex items-center gap-2 flex-1 sm:flex-initial">
-          <label className="text-sm text-gray-400 whitespace-nowrap">Genre</label>
-          <select
-            value={selectedGenre}
-            onChange={(e) => setSelectedGenre(e.target.value)}
-            className="bg-secondary rounded px-3 py-3 md:py-2 text-sm flex-1 sm:w-48 min-h-[44px]"
-          >
-            <option value="">All Genres</option>
-            {availableGenres.map((genre) => (
-              <option key={genre} value={genre}>
-                {genre}
-              </option>
-            ))}
-          </select>
+      {/* Search and filters */}
+      <div className="flex flex-col md:flex-row gap-3">
+        <div className="relative flex-1">
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+            placeholder="Search your collection..."
+            className="bg-secondary rounded px-4 py-3 md:py-2 text-sm w-full min-h-[44px] pr-10"
+          />
+          {searchInput && (
+            <button
+              onClick={() => setSearchInput('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white transition-colors"
+              title="Clear search"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
-        <div className="flex items-center gap-2 flex-1 sm:flex-initial">
-          <label className="text-sm text-gray-400 whitespace-nowrap">Sort</label>
-          <select
-            value={sort}
-            onChange={(e) => {
-              setPage(0);
-              setSort(e.target.value);
-            }}
-            className="bg-secondary rounded px-3 py-3 md:py-2 text-sm flex-1 sm:flex-initial min-h-[44px]"
-          >
-            {SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        {autoSyncing && (
-          <div className="text-sm text-gray-400">Syncing your collection...</div>
-        )}
+        <select
+          value={selectedGenre}
+          onChange={(e) => setSelectedGenre(e.target.value)}
+          className="bg-secondary rounded px-3 py-3 md:py-2 text-sm md:w-48 min-h-[44px]"
+        >
+          <option value="">All Genres</option>
+          {availableGenres.map((genre) => (
+            <option key={genre} value={genre}>
+              {genre}
+            </option>
+          ))}
+        </select>
+        <select
+          value={sort}
+          onChange={(e) => {
+            setPage(0);
+            setSort(e.target.value);
+          }}
+          className="bg-secondary rounded px-3 py-3 md:py-2 text-sm md:w-48 min-h-[44px]"
+        >
+          {SORT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       </div>
+      {autoSyncing && (
+        <div className="text-sm text-gray-400">Syncing your collection...</div>
+      )}
 
       {records.length === 0 ? (
         <div className="text-center py-12">
@@ -288,36 +299,19 @@ export default function CollectionGrid() {
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {records.map((record) => (
+            {records.map((record) => {
+              return (
               <div key={record.id} className="album-card group">
                 <div
                   className="aspect-square bg-secondary mb-3 rounded overflow-hidden relative cursor-pointer"
                   onClick={() => setSelectedAlbum(record)}
                 >
                   {record.album_art_url ? (
-                    <>
-                      {imageLoadingStates[record.id] !== 'loaded' && imageLoadingStates[record.id] !== 'error' && (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-800 animate-pulse">
-                          <div className="w-12 h-12 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
-                        </div>
-                      )}
-                      <img
-                        src={record.album_art_url}
-                        alt={record.title}
-                        loading="lazy"
-                        onLoad={() => setImageLoadingStates(prev => ({ ...prev, [record.id]: 'loaded' }))}
-                        onError={() => setImageLoadingStates(prev => ({ ...prev, [record.id]: 'error' }))}
-                        className={`w-full h-full object-cover transition-opacity duration-200 md:group-hover:opacity-70 ${
-                          imageLoadingStates[record.id] === 'loaded' ? 'opacity-100' : 'opacity-0'
-                        }`}
-                        style={{ display: imageLoadingStates[record.id] === 'error' ? 'none' : 'block' }}
-                      />
-                      {imageLoadingStates[record.id] === 'error' && (
-                        <div className="w-full h-full flex items-center justify-center text-gray-600 bg-gray-800">
-                          No Image
-                        </div>
-                      )}
-                    </>
+                    <img
+                      src={record.album_art_url}
+                      alt={record.title}
+                      className="w-full h-full object-cover transition-opacity duration-200 md:group-hover:opacity-70"
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-600">
                       No Image
@@ -325,31 +319,31 @@ export default function CollectionGrid() {
                   )}
 
                   {/* Hover overlay with action buttons */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                  <div className="absolute inset-0 bg-black/60 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <button
                       onClick={(e) => handleToggleLike(record.id, e)}
-                      className="w-12 h-12 rounded-full bg-white/90 hover:bg-white flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                      className="w-10 h-10 rounded-full bg-white/90 hover:bg-white flex items-center justify-center transition-all hover:scale-110 active:scale-95"
                       title={record.is_liked ? "Unlike" : "Like"}
                     >
                       <Icon
                         name="heart"
-                        size={20}
+                        size={18}
                         className={record.is_liked ? "text-red-500" : "text-gray-700"}
                       />
                     </button>
                     <button
                       onClick={(e) => handleMarkPlayed(record.id, e)}
-                      className="w-12 h-12 rounded-full bg-white/90 hover:bg-white flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                      className="w-10 h-10 rounded-full bg-white/90 hover:bg-white flex items-center justify-center transition-all hover:scale-110 active:scale-95"
                       title="Mark as played"
                     >
-                      <Icon name="check-circle" size={20} className="text-gray-700" />
+                      <Icon name="check-circle" size={18} className="text-gray-700" />
                     </button>
                     <button
                       onClick={(e) => handleShowDetails(record, e)}
-                      className="w-12 h-12 rounded-full bg-white/90 hover:bg-white flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                      className="w-10 h-10 rounded-full bg-white/90 hover:bg-white flex items-center justify-center transition-all hover:scale-110 active:scale-95"
                       title="View details"
                     >
-                      <Icon name="info" size={20} className="text-gray-700" />
+                      <Icon name="info" size={18} className="text-gray-700" />
                     </button>
                   </div>
                 </div>
@@ -370,7 +364,8 @@ export default function CollectionGrid() {
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Infinite scroll trigger */}
@@ -394,6 +389,7 @@ export default function CollectionGrid() {
           onClose={() => setSelectedAlbum(null)}
           onToggleLike={(id) => handleToggleLike(id)}
           onMarkPlayed={(id) => handleMarkPlayed(id)}
+          onAddToStack={handleAddToStack}
         />
       )}
     </div>

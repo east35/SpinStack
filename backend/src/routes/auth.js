@@ -122,30 +122,36 @@ router.post('/callback', async (req, res) => {
 
     const user = result.rows[0];
 
-    // Store user in session
-    req.session.userId = user.id;
-    req.session.username = user.discogs_username;
-
-    // Clear OAuth tokens
-    delete req.session.oauthToken;
-    delete req.session.oauthTokenSecret;
-
-    console.log('✅ OAuth complete! User stored in session:', { userId: user.id, username: user.discogs_username });
-
-    // Explicitly save session to ensure it's persisted to Redis
-    req.session.save((err) => {
+    // Regenerate session to get a fresh session ID with the user data
+    // This ensures a clean session and proper cookie setting
+    req.session.regenerate((err) => {
       if (err) {
-        console.error('❌ Session save error:', err);
-        return res.status(500).json({ error: 'Failed to save session' });
+        console.error('❌ Session regeneration error:', err);
+        return res.status(500).json({ error: 'Failed to create session' });
       }
 
-      console.log('✅ Session saved successfully');
-      res.json({
-        success: true,
-        user: {
-          id: user.id,
-          username: user.discogs_username,
-        },
+      // Set user data in the new session
+      req.session.userId = user.id;
+      req.session.username = user.discogs_username;
+
+      console.log('✅ OAuth complete! User stored in session:', { userId: user.id, username: user.discogs_username, sessionId: req.sessionID });
+
+      // Explicitly save session to ensure it's persisted to Redis
+      req.session.save((saveErr) => {
+        if (saveErr) {
+          console.error('❌ Session save error:', saveErr);
+          return res.status(500).json({ error: 'Failed to save session' });
+        }
+
+        console.log('✅ Session regenerated and saved successfully, ID:', req.sessionID);
+        res.json({
+          success: true,
+          user: {
+            id: user.id,
+            username: user.discogs_username,
+          },
+          sessionId: req.sessionID, // Return session ID for manual cookie management
+        });
       });
     });
   } catch (error) {

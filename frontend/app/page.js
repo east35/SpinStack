@@ -11,6 +11,23 @@ export default function Home() {
 
   useEffect(() => {
     checkAuth();
+
+    // Prevent back button from going to OAuth pages after authentication
+    const preventOAuthBackNav = () => {
+      // If user just completed OAuth, they shouldn't be able to go back to it
+      const oauthCompleted = sessionStorage.getItem('oauth_completed');
+      if (oauthCompleted === 'true') {
+        // Push a new state to prevent going back
+        window.history.pushState(null, '', window.location.pathname);
+      }
+    };
+
+    // Check on mount
+    preventOAuthBackNav();
+
+    // Listen for popstate (back/forward button)
+    window.addEventListener('popstate', preventOAuthBackNav);
+    return () => window.removeEventListener('popstate', preventOAuthBackNav);
   }, []);
 
   const checkAuth = async () => {
@@ -31,6 +48,8 @@ export default function Home() {
   const handleLogout = async () => {
     try {
       await auth.logout();
+      // Clear session ID from localStorage
+      localStorage.removeItem('vinyl_session_id');
       setUser(null);
     } catch (error) {
       console.error('Logout failed:', error);

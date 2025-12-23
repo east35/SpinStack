@@ -12,11 +12,20 @@ export default function Login({ onLogin }) {
   const handleLogin = async () => {
     try {
       setLoading(true);
+
+      // Clear any existing session data before starting new login
+      localStorage.removeItem('vinyl_session_id');
+      sessionStorage.removeItem('oauth_state');
+      sessionStorage.removeItem('oauth_in_progress');
+      sessionStorage.removeItem('oauth_completed');
+
       const response = await auth.login();
       // Store state in sessionStorage for the callback
       if (response.data.state) {
         sessionStorage.setItem('oauth_state', response.data.state);
       }
+      // Store a flag to prevent back button from showing login page after auth
+      sessionStorage.setItem('oauth_in_progress', 'true');
       // Redirect user to Discogs authorization
       window.location.href = response.data.authorizeUrl;
     } catch (error) {

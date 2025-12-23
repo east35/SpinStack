@@ -6,6 +6,15 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Add interceptor to include session ID in headers if available
+api.interceptors.request.use((config) => {
+  const sessionId = typeof window !== 'undefined' ? localStorage.getItem('vinyl_session_id') : null;
+  if (sessionId) {
+    config.headers['X-Session-Id'] = sessionId;
+  }
+  return config;
+});
+
 /**
  * Wrapper to use demo API when in demo mode
  */
@@ -47,6 +56,15 @@ const realStacks = {
   refreshDaily: () => api.post('/api/stacks/daily/refresh'),
   refreshWeekly: () => api.post('/api/stacks/weekly/refresh'),
   markPlayed: (data) => api.post('/api/stacks/mark-played', data),
+  // Custom stacks
+  getCustom: () => api.get('/api/stacks/custom'),
+  getDraft: () => api.get('/api/stacks/custom/draft'),
+  createCustom: () => api.post('/api/stacks/custom/create'),
+  addAlbumToStack: (stackId, albumId) => api.post(`/api/stacks/custom/${stackId}/add-album`, { albumId }),
+  removeAlbumFromStack: (stackId, albumId) => api.delete(`/api/stacks/custom/${stackId}/albums/${albumId}`),
+  saveCustomStack: (stackId, name, subtitle) => api.post(`/api/stacks/custom/${stackId}/save`, { name, subtitle }),
+  deleteCustomStack: (stackId) => api.delete(`/api/stacks/custom/${stackId}`),
+  getRecommendations: (stackId) => api.get(`/api/stacks/custom/${stackId}/recommendations`),
 };
 
 const realStats = {

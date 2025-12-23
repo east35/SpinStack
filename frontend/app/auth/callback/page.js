@@ -25,15 +25,27 @@ export default function AuthCallback() {
 
       try {
         // Pass both verifier and state to backend
-        await auth.callback(oauthVerifier, state);
-        // Clear stored state
+        const response = await auth.callback(oauthVerifier, state);
+
+        // Store session ID if provided (fallback for when cookies don't work)
+        if (response.data.sessionId) {
+          localStorage.setItem('vinyl_session_id', response.data.sessionId);
+          console.log('✅ Session ID stored:', response.data.sessionId);
+        }
+
+        // Clear stored state and set completion flag
         sessionStorage.removeItem('oauth_state');
-        // Use replace instead of push to prevent back button issues
-        router.replace('/');
+        sessionStorage.removeItem('oauth_in_progress');
+        sessionStorage.setItem('oauth_completed', 'true');
+        // Use location.replace to avoid adding callback page to history
+        window.location.replace('/');
       } catch (error) {
         console.error('Authentication callback failed:', error);
         alert('Authentication failed. Please try again.');
-        router.replace('/');
+        sessionStorage.removeItem('oauth_state');
+        sessionStorage.removeItem('oauth_in_progress');
+        sessionStorage.removeItem('oauth_completed');
+        window.location.replace('/');
       }
     };
 
