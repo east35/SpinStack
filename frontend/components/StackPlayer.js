@@ -40,13 +40,18 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
     setSelectedAlbum(null);
   }, [initialStack]);
 
-  // Lock body scroll when component mounts, unlock when unmounts
+  // Lock body scroll when in pull/spinning mode, unlock when minimized
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
+    if (view === 'minimized') {
+      document.body.style.overflow = '';
+    } else {
+      document.body.style.overflow = 'hidden';
+    }
+
     return () => {
       document.body.style.overflow = '';
     };
-  }, []);
+  }, [view]);
 
   // Detect mobile screen size
   useEffect(() => {
