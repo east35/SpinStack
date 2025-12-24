@@ -22,6 +22,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
   const [isSwapping, setIsSwapping] = useState(false);
   const [swapPhase, setSwapPhase] = useState('idle'); // 'idle', 'cover', 'hold', 'fade', 'hold-reveal', 'slide'
   const [isMobile, setIsMobile] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   // Reset state when stack changes
   useEffect(() => {
@@ -58,6 +59,19 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
 
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Detect scroll for top nav background
+  useEffect(() => {
+    const scrollContainer = document.querySelector('.stack-player-scroll-container');
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+      setIsScrolled(scrollContainer.scrollTop > 10);
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [view]);
 
   const handleStartSpinning = () => {
     setView('spinning');
@@ -245,7 +259,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
   if (view === 'minimized') {
     return (
       <div
-        className="fixed bottom-4 right-4 bg-gray-900 rounded-lg p-4 shadow-2xl z-50 cursor-pointer border border-gray-700"
+        className="fixed bottom-4 right-4 bg-gray-900 rounded-lg p-4 shadow-2xl z-[60] cursor-pointer border border-gray-700"
         onClick={handleMaximize}
       >
         <div className="flex items-center gap-3">
@@ -269,7 +283,9 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
   if (view === 'pull') {
     return (
       <div className="fixed inset-0 bg-black z-50 flex flex-col" style={{ background: 'linear-gradient(to bottom, #42423D 0%, #000000 100%)' }}>
-        <div className="px-4 py-3 flex items-center justify-between">
+        <div className={`px-4 py-3 flex items-center justify-between sticky top-0 z-10 transition-colors duration-200 ${
+          isScrolled ? 'bg-black/90 backdrop-blur-sm' : 'bg-transparent'
+        }`}>
           <h2 className="text-lg font-semibold"><span className='opacity-50 pr-1'>Get Ready</span>{initialStack.name}</h2>
           <button
             onClick={handleCancel}
@@ -279,7 +295,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
           </button>
         </div>
 
-        <div className="flex-1 overflow-auto p-8">
+        <div className="flex-1 overflow-auto p-8 stack-player-scroll-container">
           <div className="max-w-2xl mx-auto">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {albums.map((album, index) => (
@@ -313,7 +329,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
             onClick={handleStartSpinning}
             className="px-8 py-3 bg-yellow-400 text-black rounded-full font-semibold hover:bg-yellow-300"
           >
-            Start Spinning →
+            Start Spinning
           </button>
         </div>
       </div>
@@ -352,7 +368,9 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
       className="fixed inset-0 z-50 flex flex-col overflow-hidden"
       style={{ background: 'linear-gradient(to bottom, #42423D 0%, #000000 100%)' }}
     >
-      <div className="px-4 py-3 flex items-center justify-between bg-transparent">
+      <div className={`px-4 py-3 flex items-center justify-between sticky top-0 z-10 transition-colors duration-200 ${
+        isScrolled ? 'bg-black/90 backdrop-blur-sm' : 'bg-transparent'
+      }`}>
         <h2 className="text-lg font-semibold"><span className='opacity-50 pr-1'>Now Spinning</span>{initialStack.name}</h2>
         <div className="flex items-center gap-4 md:gap-8">
           {/* Mobile: Icon buttons */}
@@ -388,7 +406,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
           </button>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden stack-player-scroll-container">
         <div className="flex flex-col items-center p-6 space-y-6">
         <div className="text-center">
           <div className="relative inline-block mb-6">
@@ -569,22 +587,22 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
       {showEndSessionPrompt && (
         <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
           <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md space-y-4 border border-gray-800">
-            <h3 className="text-lg font-semibold">End this session?</h3>
+            <h3 className="text-lg font-semibold">Stop this session?</h3>
             <p className="text-gray-300">
-              Are you sure you want to end your spinning session? Your progress will be saved.
+              Are you sure you want to stop your session? Your progress will be saved.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={handleConfirmEndSession}
                 className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors"
               >
-                End Session
+                Stop
               </button>
               <button
                 onClick={handleCancelEndSession}
                 className="flex-1 px-4 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg font-semibold transition-colors"
               >
-                Keep Spinning
+                Cancel
               </button>
             </div>
           </div>
