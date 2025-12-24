@@ -25,6 +25,7 @@ A Spotify/Tidal-inspired web app for your physical vinyl collection. Generate pl
 - **Backend**: Node.js, Express, PostgreSQL, Redis
 - **Frontend**: Next.js 14, React, Tailwind CSS
 - **API Integration**: Discogs OAuth 1.0a
+- **Deployment**: Docker with pre-built images available on GitHub Container Registry
 
 ## Quick Start
 
@@ -156,6 +157,18 @@ Perfect for running on Synology Container Manager or any Docker environment.
    - Go to [Discogs Developer Settings](https://www.discogs.com/settings/developers)
    - Update Callback URL to: `http://YOUR_SYNOLOGY_IP:3200/auth/callback`
 
+### Deploy with Pre-built Images (Recommended)
+
+The easiest way to deploy is using pre-built images from GitHub Container Registry:
+
+```bash
+ssh admin@YOUR_SYNOLOGY_IP
+cd /volume1/docker/VinylApp
+
+# Pull and start using pre-built images
+docker-compose -f docker-compose.prod.yml up -d
+```
+
 ### Deploy with Container Manager UI
 
 1. Open Container Manager
@@ -163,10 +176,12 @@ Perfect for running on Synology Container Manager or any Docker environment.
 3. Configure:
    - Project Name: `vinylapp`
    - Path: Select your project folder
-   - Source: `docker-compose.yml`
+   - Source: `docker-compose.prod.yml` (for pre-built images) or `docker-compose.yml` (to build locally)
 4. Click Next → Review → Done
 
-### Deploy via SSH
+### Deploy via SSH (Build from Source)
+
+If you prefer to build from source instead of using pre-built images:
 
 ```bash
 ssh admin@YOUR_SYNOLOGY_IP
