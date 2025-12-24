@@ -21,6 +21,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
   const [tiltStyle, setTiltStyle] = useState({});
   const [isSwapping, setIsSwapping] = useState(false);
   const [swapPhase, setSwapPhase] = useState('idle'); // 'idle', 'cover', 'hold', 'fade', 'hold-reveal', 'slide'
+  const [isMobile, setIsMobile] = useState(false);
 
   // Reset state when stack changes
   useEffect(() => {
@@ -44,6 +45,18 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
     return () => {
       document.body.style.overflow = '';
     };
+  }, []);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   const handleStartSpinning = () => {
@@ -361,7 +374,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
         <div className="text-center">
           <div className="relative inline-block mb-6">
             <div
-              className="relative w-96 h-96 max-w-[90vw] max-h-[90vw]"
+              className="relative w-64 h-64 md:w-96 md:h-96"
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
               style={containerStyle}
@@ -372,7 +385,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
                   style={recordAnimationStyle}
                 >
                   <VinylRecord
-                    size={384}
+                    size={isMobile ? 256 : 384}
                     spinning={true}
                     className="drop-shadow-2xl"
                     coverUrl={currentAlbum.album_art_url || undefined}
@@ -394,13 +407,13 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
               </div>
             </div>
             {nextAlbums.length > 0 && (
-              <div className="absolute -right-16 top-8 -z-10 hidden md:block">
+              <div className="absolute -right-12 md:-right-16 top-6 md:top-8 -z-10 hidden md:block">
                 {nextAlbums.map((album, idx) => (
                   <img
                     key={`${album.id}-${currentIndex + idx + 1}`}
                     src={album.album_art_url || '/placeholder-album.png'}
                     alt=""
-                    className="w-72 h-72 rounded-lg object-cover opacity-50 absolute"
+                    className="w-48 h-48 md:w-72 md:h-72 rounded-lg object-cover opacity-50 absolute"
                     style={{
                       transform: `translateY(${idx * 20}px) rotate(${idx * 2}deg)`,
                     }}
@@ -410,8 +423,8 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
             )}
           </div>
 
-          <h2 className="text-4xl font-bold mb-2">{currentAlbum.title}</h2>
-          <p className="text-xl text-gray-400 mb-6">{currentAlbum.artist}</p>
+          <h2 className="text-2xl md:text-4xl font-bold mb-2 px-4">{currentAlbum.title}</h2>
+          <p className="text-lg md:text-xl text-gray-400 mb-6 px-4">{currentAlbum.artist}</p>
 
           <div className="flex items-center justify-center gap-8">
             <button
