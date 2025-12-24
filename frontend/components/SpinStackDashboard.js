@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { isDemoMode } from '../lib/demoApi';
 import TopNav from './TopNav';
+import BottomNav from './BottomNav';
 import StacksView from './StacksView';
 import CollectionView from './CollectionGrid';
 import StatsView from './StatsView';
@@ -43,7 +44,7 @@ export default function SpinStackDashboard({ user, onLogout }) {
       </div>
 
       {currentView !== 'builder' && (
-        <div>
+        <div className="hidden md:block">
           <div className="max-w-7xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -92,7 +93,7 @@ export default function SpinStackDashboard({ user, onLogout }) {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8 pb-24 md:pb-8">
         <div className={currentView === 'stacks' ? '' : 'hidden'}>
           <StacksView
             key={stacksViewKey}
@@ -114,6 +115,15 @@ export default function SpinStackDashboard({ user, onLogout }) {
           />
         </div>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      {currentView !== 'builder' && (
+        <BottomNav
+          currentView={currentView}
+          onNavigate={handleViewChange}
+          onOpenStackBuilder={handleOpenStackBuilder}
+        />
+      )}
 
       {/* Demo Mode Message Modal */}
       {showDemoMessage && (
