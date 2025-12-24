@@ -12,6 +12,7 @@ export default function SpinStackDashboard({ user, onLogout }) {
   const [stacksViewKey, setStacksViewKey] = useState(0);
   const [pendingStackToStart, setPendingStackToStart] = useState(null);
   const [showDemoMessage, setShowDemoMessage] = useState(false);
+  const [isStackPlayerActive, setIsStackPlayerActive] = useState(false);
 
   const handleViewChange = (view) => {
     setCurrentView(view);
@@ -100,6 +101,7 @@ export default function SpinStackDashboard({ user, onLogout }) {
             onOpenStackBuilder={handleOpenStackBuilder}
             pendingStackToStart={pendingStackToStart}
             onStackStarted={() => setPendingStackToStart(null)}
+            onStackPlayerChange={setIsStackPlayerActive}
           />
         </div>
         <div className={currentView === 'collection' ? '' : 'hidden'}>
@@ -117,7 +119,7 @@ export default function SpinStackDashboard({ user, onLogout }) {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      {currentView !== 'builder' && (
+      {currentView !== 'builder' && !isStackPlayerActive && (
         <BottomNav
           currentView={currentView}
           onNavigate={handleViewChange}

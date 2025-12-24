@@ -352,18 +352,37 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
       className="fixed inset-0 z-50 flex flex-col overflow-hidden"
       style={{ background: 'linear-gradient(to bottom, #42423D 0%, #000000 100%)' }}
     >
-      <div className="px-4 py-3 flex items-center justify-between">
+      <div className="px-4 py-3 flex items-center justify-between bg-transparent">
         <h2 className="text-lg font-semibold"><span className='opacity-50 pr-1'>Now Spinning</span>{initialStack.name}</h2>
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-4 md:gap-8">
+          {/* Mobile: Icon buttons */}
           <button
             onClick={handleEndSessionClick}
-            className="text-gray-400 hover:text-red-400 transition-colors"
+            className="md:hidden text-gray-400 hover:text-red-400 transition-colors"
+            aria-label="End Session"
+          >
+            <img src="/icons/stop-circle.svg" alt="End Session" className="w-6 h-6 brightness-0 invert opacity-60 hover:opacity-100" />
+          </button>
+          <button
+            onClick={handleMinimize}
+            className="md:hidden text-gray-400 hover:text-white transition-colors"
+            aria-label="Minimize"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {/* Desktop: Text buttons */}
+          <button
+            onClick={handleEndSessionClick}
+            className="hidden md:block text-gray-400 hover:text-red-400 transition-colors"
           >
             End Session
           </button>
           <button
             onClick={handleMinimize}
-            className="text-gray-400 hover:text-white"
+            className="hidden md:block text-gray-400 hover:text-white"
           >
             Minimize
           </button>
