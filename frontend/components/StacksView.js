@@ -3,7 +3,7 @@ import { stacks as stacksApi } from '../lib/api';
 import StackPlayer from './StackPlayer';
 import Icon from './Icon';
 
-export default function StacksView({ onOpenStackBuilder, pendingStackToStart, onStackStarted }) {
+export default function StacksView({ onOpenStackBuilder, pendingStackToStart, onStackStarted, onStackPlayerChange }) {
   const [dailyStack, setDailyStack] = useState(null);
   const [curatedStacks, setCuratedStacks] = useState([]);
   const [customStacks, setCustomStacks] = useState([]);
@@ -16,6 +16,13 @@ export default function StacksView({ onOpenStackBuilder, pendingStackToStart, on
   const [deletingStackId, setDeletingStackId] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [stackToDelete, setStackToDelete] = useState(null);
+
+  // Notify parent when stack player state changes
+  useEffect(() => {
+    if (onStackPlayerChange) {
+      onStackPlayerChange(!!activeStack && !isStackMinimized);
+    }
+  }, [activeStack, isStackMinimized, onStackPlayerChange]);
 
   // Helper function to get unique artists from a stack
   const getArtistSubtitle = (albums) => {
