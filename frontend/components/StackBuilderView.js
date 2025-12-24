@@ -367,49 +367,45 @@ export default function StackBuilderView({ onCancel, onStackCreated }) {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {suggestions.slice(0, 12).map((suggestion) => {
               const isSelected = isAlbumSelected(suggestion.id);
+              const isDisabled = addingToStack === suggestion.id || (selectedAlbums.length >= 8 && !isSelected);
               return (
-                <button
+                <div
                   key={suggestion.id}
-                  onClick={(e) => handleAddSuggestion(suggestion, e)}
-                  disabled={addingToStack === suggestion.id || (selectedAlbums.length >= 8 && !isSelected)}
                   className="group text-left relative"
                 >
-                  <div className={`aspect-square rounded overflow-hidden bg-gray-800 relative ${
-                    isSelected ? 'ring-4 ring-green-500' : ''
-                  }`}>
+                  <button
+                    onClick={(e) => handleAddSuggestion(suggestion, e)}
+                    disabled={isDisabled}
+                    className={`w-full aspect-square rounded overflow-hidden bg-gray-800 relative ${
+                      isSelected ? 'ring-4 ring-green-500' : ''
+                    } ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
                     <img
                       src={suggestion.album_art_url}
                       alt={suggestion.title}
                       className="w-full h-full object-cover transition-transform group-hover:scale-110"
                     />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/60 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                       {addingToStack === suggestion.id ? (
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
                       ) : isSelected ? (
-                        <button
-                          onClick={(e) => handleAddSuggestion(suggestion, e)}
-                          className="w-12 h-12 rounded-full bg-red-500/90 hover:bg-red-600 flex items-center justify-center transition-all hover:scale-110"
-                        >
+                        <div className="w-12 h-12 rounded-full bg-red-500/90 flex items-center justify-center">
                           <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
-                        </button>
+                        </div>
                       ) : (
-                        <button
-                          onClick={(e) => handleAddSuggestion(suggestion, e)}
-                          disabled={selectedAlbums.length >= 8}
-                          className="w-12 h-12 rounded-full bg-white/90 hover:bg-white disabled:bg-white/50 flex items-center justify-center transition-all hover:scale-110"
-                        >
+                        <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
                           <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                           </svg>
-                        </button>
+                        </div>
                       )}
                     </div>
-                  </div>
+                  </button>
                   <h3 className="font-medium text-xs mt-2 truncate">{suggestion.title}</h3>
                   <p className="text-gray-400 text-xs truncate">{suggestion.artist}</p>
-                </button>
+                </div>
               );
             })}
           </div>
