@@ -332,7 +332,8 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
             onClick={handleStartSpinning}
             className="px-8 py-3 bg-yellow-400 text-black rounded-full font-semibold hover:bg-yellow-300"
           >
-            Start Spinning
+            <span className="md:hidden">Spin →</span>
+            <span className="hidden md:inline">Start Spinning →</span>
           </button>
         </div>
       </div>
