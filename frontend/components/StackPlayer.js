@@ -259,7 +259,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
   if (view === 'minimized') {
     return (
       <div
-        className="fixed bottom-20 md:bottom-4 right-4 bg-gray-900 rounded-lg p-4 shadow-2xl z-[60] cursor-pointer border border-gray-700"
+        className="fixed bottom-24 md:bottom-4 right-4 bg-gray-900 rounded-lg p-4 shadow-2xl z-[60] cursor-pointer border border-gray-700"
         onClick={handleMaximize}
       >
         <div className="flex items-center gap-3">
@@ -284,7 +284,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
     return (
       <div className="fixed inset-0 bg-black z-50 flex flex-col" style={{ background: 'linear-gradient(to bottom, #42423D 0%, #000000 100%)' }}>
         <div className={`px-4 py-3 flex items-center justify-between gap-4 sticky top-0 z-10 transition-colors duration-200 ${
-          isScrolled ? 'bg-black/90 backdrop-blur-sm' : 'bg-transparent'
+          isScrolled ? 'bg-black/90 backdrop-blur-sm border-b border-gray-800' : 'bg-transparent'
         }`}>
           <h2 className="text-lg font-semibold truncate flex-1 min-w-0">
             <span className='opacity-50 pr-1 hidden md:inline'>Get Ready</span>
@@ -321,7 +321,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
           </div>
         </div>
 
-        <div className="p-6 flex gap-4 justify-center">
+        <div className="p-6 flex gap-4 justify-center border-t border-gray-800">
           <button
             onClick={handleCancel}
             className="px-8 py-3 bg-gray-800 rounded-full hover:bg-gray-700"
@@ -332,8 +332,8 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
             onClick={handleStartSpinning}
             className="px-8 py-3 bg-yellow-400 text-black rounded-full font-semibold hover:bg-yellow-300"
           >
-            <span className="md:hidden">Spin →</span>
-            <span className="hidden md:inline">Start Spinning →</span>
+            <span className="md:hidden">Spin</span>
+            <span className="hidden md:inline">Start Spinning</span>
           </button>
         </div>
       </div>
@@ -373,7 +373,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
       style={{ background: 'linear-gradient(to bottom, #42423D 0%, #000000 100%)' }}
     >
       <div className={`px-4 py-3 flex items-center justify-between gap-4 sticky top-0 z-10 transition-colors duration-200 ${
-        isScrolled ? 'bg-black/90 backdrop-blur-sm' : 'bg-transparent'
+        isScrolled ? 'bg-black/90 backdrop-blur-sm' : 'bg-transparent' 
       }`}>
         <h2 className="text-lg font-semibold truncate flex-1 min-w-0">
           <span className='opacity-50 pr-1 hidden md:inline'>Now Spinning</span>
