@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { stacks as stacksApi } from '../lib/api';
+import { isDemoMode } from '../lib/demoApi';
 import StackPlayer from './StackPlayer';
 import Icon from './Icon';
 
-export default function StacksView({ onOpenStackBuilder, pendingStackToStart, onStackStarted }) {
+export default function StacksView({ onOpenStackBuilder, pendingStackToStart, onStackStarted, onStackPlayerChange }) {
   const [dailyStack, setDailyStack] = useState(null);
   const [curatedStacks, setCuratedStacks] = useState([]);
   const [customStacks, setCustomStacks] = useState([]);
@@ -16,6 +17,15 @@ export default function StacksView({ onOpenStackBuilder, pendingStackToStart, on
   const [deletingStackId, setDeletingStackId] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [stackToDelete, setStackToDelete] = useState(null);
+  const [imageLoadingStates, setImageLoadingStates] = useState({});
+  const [showDemoDeleteMessage, setShowDemoDeleteMessage] = useState(false);
+
+  // Notify parent when stack player state changes
+  useEffect(() => {
+    if (onStackPlayerChange) {
+      onStackPlayerChange(!!activeStack && !isStackMinimized);
+    }
+  }, [activeStack, isStackMinimized, onStackPlayerChange]);
 
   // Helper function to get unique artists from a stack
   const getArtistSubtitle = (albums) => {
@@ -167,8 +177,12 @@ export default function StacksView({ onOpenStackBuilder, pendingStackToStart, on
 
   const handleDeleteClick = (stack, e) => {
     e.stopPropagation();
-    setStackToDelete(stack);
-    setShowDeleteConfirm(true);
+    if (isDemoMode()) {
+      setShowDemoDeleteMessage(true);
+    } else {
+      setStackToDelete(stack);
+      setShowDeleteConfirm(true);
+    }
   };
 
   if (loading) {
@@ -209,12 +223,23 @@ export default function StacksView({ onOpenStackBuilder, pendingStackToStart, on
             <div className="order-2">
               <div className="grid grid-cols-4 gap-2 md:gap-1 max-w-full md:w-[420px] mx-auto md:mx-0">
                 {dailyStack.albums.map((album, idx) => (
-                  <img
-                    key={idx}
-                    src={album.album_art_url || '/placeholder-album.png'}
-                    alt={album.title}
-                    className="w-full aspect-square rounded-md md:rounded-sm object-cover"
-                  />
+                  <div key={idx} className="relative w-full aspect-square rounded-md md:rounded-sm overflow-hidden bg-gray-800">
+                    {imageLoadingStates[album.id] !== 'loaded' && imageLoadingStates[album.id] !== 'error' && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-6 h-6 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
+                      </div>
+                    )}
+                    <img
+                      src={album.album_art_url || '/placeholder-album.png'}
+                      alt={album.title}
+                      className={`w-full h-full object-cover transition-opacity duration-200 ${
+                        imageLoadingStates[album.id] === 'loaded' ? 'opacity-100' : 'opacity-0'
+                      }`}
+                      loading="lazy"
+                      onLoad={() => setImageLoadingStates(prev => ({ ...prev, [album.id]: 'loaded' }))}
+                      onError={() => setImageLoadingStates(prev => ({ ...prev, [album.id]: 'error' }))}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
@@ -275,12 +300,23 @@ export default function StacksView({ onOpenStackBuilder, pendingStackToStart, on
                 >
                   <div className="grid grid-cols-2 gap-1 transition-opacity duration-200 md:group-hover:opacity-70">
                     {stack.albums.slice(0, 4).map((album, idx) => (
-                      <img
-                        key={`${stack.id}-${idx}`}
-                        src={album.album_art_url || '/placeholder-album.png'}
-                        alt={album.title}
-                        className="w-full aspect-square rounded-sm object-cover"
-                      />
+                      <div key={`${stack.id}-${idx}`} className="relative w-full aspect-square rounded-sm overflow-hidden bg-gray-800">
+                        {imageLoadingStates[album.id] !== 'loaded' && imageLoadingStates[album.id] !== 'error' && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-4 h-4 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
+                          </div>
+                        )}
+                        <img
+                          src={album.album_art_url || '/placeholder-album.png'}
+                          alt={album.title}
+                          className={`w-full h-full object-cover transition-opacity duration-200 ${
+                            imageLoadingStates[album.id] === 'loaded' ? 'opacity-100' : 'opacity-0'
+                          }`}
+                          loading="lazy"
+                          onLoad={() => setImageLoadingStates(prev => ({ ...prev, [album.id]: 'loaded' }))}
+                          onError={() => setImageLoadingStates(prev => ({ ...prev, [album.id]: 'error' }))}
+                        />
+                      </div>
                     ))}
                   </div>
                   <div className="absolute inset-0 bg-black/60 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -347,13 +383,24 @@ export default function StacksView({ onOpenStackBuilder, pendingStackToStart, on
                 <div className="relative overflow-hidden rounded-md">
                   <div className="grid grid-cols-2 gap-1 transition-opacity duration-200 md:group-hover:opacity-70">
                     {stack.albums.slice(0, 4).map((album, idx) => (
-                      <img
-                            key={`${stack.id}-${idx}`}
-                            src={album.album_art_url || '/placeholder-album.png'}
-                            alt={album.title}
-                            className="w-full aspect-square rounded-sm object-cover"
-                          />
-                        ))}
+                      <div key={`${stack.id}-${idx}`} className="relative w-full aspect-square rounded-sm overflow-hidden bg-gray-800">
+                        {imageLoadingStates[album.id] !== 'loaded' && imageLoadingStates[album.id] !== 'error' && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-4 h-4 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
+                          </div>
+                        )}
+                        <img
+                          src={album.album_art_url || '/placeholder-album.png'}
+                          alt={album.title}
+                          className={`w-full h-full object-cover transition-opacity duration-200 ${
+                            imageLoadingStates[album.id] === 'loaded' ? 'opacity-100' : 'opacity-0'
+                          }`}
+                          loading="lazy"
+                          onLoad={() => setImageLoadingStates(prev => ({ ...prev, [album.id]: 'loaded' }))}
+                          onError={() => setImageLoadingStates(prev => ({ ...prev, [album.id]: 'error' }))}
+                        />
+                      </div>
+                    ))}
                   </div>
                   <div className="absolute inset-0 bg-black/60 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <div className="flex items-center gap-2 px-4 py-2 bg-white text-black text-xs md:text-sm font-semibold rounded-full shadow-lg">
@@ -466,12 +513,23 @@ export default function StacksView({ onOpenStackBuilder, pendingStackToStart, on
                     >
                       <div className="grid grid-cols-2 gap-1 transition-opacity duration-200 md:group-hover:opacity-70">
                         {stack.albums.slice(0, 4).map((album, idx) => (
-                          <img
-                            key={`${stack.id}-${idx}`}
-                            src={album.album_art_url || '/placeholder-album.png'}
-                            alt={album.title}
-                            className="w-full aspect-square rounded-sm object-cover"
-                          />
+                          <div key={`${stack.id}-${idx}`} className="relative w-full aspect-square rounded-sm overflow-hidden bg-gray-800">
+                            {imageLoadingStates[album.id] !== 'loaded' && imageLoadingStates[album.id] !== 'error' && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-4 h-4 rounded-full border-2 border-gray-600 border-t-gray-400 animate-spin"></div>
+                              </div>
+                            )}
+                            <img
+                              src={album.album_art_url || '/placeholder-album.png'}
+                              alt={album.title}
+                              className={`w-full h-full object-cover transition-opacity duration-200 ${
+                                imageLoadingStates[album.id] === 'loaded' ? 'opacity-100' : 'opacity-0'
+                              }`}
+                              loading="lazy"
+                              onLoad={() => setImageLoadingStates(prev => ({ ...prev, [album.id]: 'loaded' }))}
+                              onError={() => setImageLoadingStates(prev => ({ ...prev, [album.id]: 'error' }))}
+                            />
+                          </div>
                         ))}
                       </div>
                       <div className="absolute inset-0 bg-black/60 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -528,6 +586,34 @@ export default function StacksView({ onOpenStackBuilder, pendingStackToStart, on
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Demo Mode Delete Message Modal */}
+      {showDemoDeleteMessage && (
+        <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
+          <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md space-y-4 border border-gray-800">
+            <div className="flex items-center justify-center w-16 h-16 bg-yellow-500/20 rounded-full mx-auto">
+              <svg className="w-10 h-10 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+
+            <h3 className="text-xl font-bold text-center">Custom Stacks Not Available</h3>
+            <p className="text-gray-400 text-center">
+              You can't delete custom stacks in demo mode. Mock data doesn't play nice with the variables we can't predict!
+            </p>
+            <p className="text-gray-300 text-center text-sm">
+              These pre-made stacks are here to show you how the feature works.
+            </p>
+
+            <button
+              onClick={() => setShowDemoDeleteMessage(false)}
+              className="w-full px-4 py-3 bg-white hover:bg-yellow-400 text-black rounded-lg font-semibold transition-colors"
+            >
+              Got It
+            </button>
           </div>
         </div>
       )}

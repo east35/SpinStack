@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { isDemoMode } from '../lib/demoApi';
 import TopNav from './TopNav';
+import BottomNav from './BottomNav';
 import StacksView from './StacksView';
 import CollectionView from './CollectionGrid';
 import StatsView from './StatsView';
@@ -9,13 +11,19 @@ export default function SpinStackDashboard({ user, onLogout }) {
   const [currentView, setCurrentView] = useState('stacks');
   const [stacksViewKey, setStacksViewKey] = useState(0);
   const [pendingStackToStart, setPendingStackToStart] = useState(null);
+  const [showDemoMessage, setShowDemoMessage] = useState(false);
+  const [isStackPlayerActive, setIsStackPlayerActive] = useState(false);
 
   const handleViewChange = (view) => {
     setCurrentView(view);
   };
 
   const handleOpenStackBuilder = () => {
-    setCurrentView('builder');
+    if (isDemoMode()) {
+      setShowDemoMessage(true);
+    } else {
+      setCurrentView('builder');
+    }
   };
 
   const handleCancelBuilder = () => {
@@ -37,7 +45,7 @@ export default function SpinStackDashboard({ user, onLogout }) {
       </div>
 
       {currentView !== 'builder' && (
-        <div>
+        <div className="hidden md:block">
           <div className="max-w-7xl mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -79,20 +87,21 @@ export default function SpinStackDashboard({ user, onLogout }) {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                New Stack
+                <span className="hidden md:inline">New Stack</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8 pb-24 md:pb-8">
         <div className={currentView === 'stacks' ? '' : 'hidden'}>
           <StacksView
             key={stacksViewKey}
             onOpenStackBuilder={handleOpenStackBuilder}
             pendingStackToStart={pendingStackToStart}
             onStackStarted={() => setPendingStackToStart(null)}
+            onStackPlayerChange={setIsStackPlayerActive}
           />
         </div>
         <div className={currentView === 'collection' ? '' : 'hidden'}>
@@ -108,6 +117,43 @@ export default function SpinStackDashboard({ user, onLogout }) {
           />
         </div>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      {currentView !== 'builder' && !isStackPlayerActive && (
+        <BottomNav
+          currentView={currentView}
+          onNavigate={handleViewChange}
+          onOpenStackBuilder={handleOpenStackBuilder}
+        />
+      )}
+
+      {/* Demo Mode Message Modal */}
+      {showDemoMessage && (
+        <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
+          <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md space-y-4 border border-gray-800">
+            <div className="flex items-center justify-center w-16 h-16 bg-yellow-500/20 rounded-full mx-auto">
+              <svg className="w-10 h-10 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+
+            <h3 className="text-xl font-bold text-center">Stack Builder Not Available</h3>
+            <p className="text-gray-400 text-center">
+              The custom stack builder isn't available in demo mode. Mock data doesn't play nice with the variables we can't predict!
+            </p>
+            <p className="text-gray-300 text-center text-sm">
+              But don't worry — you can check out the pre-made custom stacks we've created for you on the Stacks page.
+            </p>
+
+            <button
+              onClick={() => setShowDemoMessage(false)}
+              className="w-full px-4 py-3 bg-white hover:bg-yellow-400 text-black rounded-lg font-semibold transition-colors"
+            >
+              Got It
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

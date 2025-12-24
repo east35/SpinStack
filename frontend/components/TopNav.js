@@ -73,7 +73,7 @@ export default function TopNav({ user, onLogout, currentView, onNavigate }) {
             className="flex items-center gap-2 text-sm text-gray-400 bg-gray-900 rounded-lg px-4 py-2 overflow-hidden hover:text-gray-300 transition-all min-h-[44px]"
           >
             <Icon name="user" size={16} className="text-gray-400" />
-            <span>@{user?.discogs_username}</span>
+            <span className="hidden md:inline">@{user?.discogs_username}</span>
             <Icon
               name={showDropdown ? "chevron-up" : "chevron-down"}
               size={16}
