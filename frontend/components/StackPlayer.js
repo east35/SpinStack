@@ -259,7 +259,7 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
   if (view === 'minimized') {
     return (
       <div
-        className="fixed bottom-4 right-4 bg-gray-900 rounded-lg p-4 shadow-2xl z-[60] cursor-pointer border border-gray-700"
+        className="fixed bottom-20 md:bottom-4 right-4 bg-gray-900 rounded-lg p-4 shadow-2xl z-[60] cursor-pointer border border-gray-700"
         onClick={handleMaximize}
       >
         <div className="flex items-center gap-3">
@@ -283,13 +283,16 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
   if (view === 'pull') {
     return (
       <div className="fixed inset-0 bg-black z-50 flex flex-col" style={{ background: 'linear-gradient(to bottom, #42423D 0%, #000000 100%)' }}>
-        <div className={`px-4 py-3 flex items-center justify-between sticky top-0 z-10 transition-colors duration-200 ${
+        <div className={`px-4 py-3 flex items-center justify-between gap-4 sticky top-0 z-10 transition-colors duration-200 ${
           isScrolled ? 'bg-black/90 backdrop-blur-sm' : 'bg-transparent'
         }`}>
-          <h2 className="text-lg font-semibold"><span className='opacity-50 pr-1'>Get Ready</span>{initialStack.name}</h2>
+          <h2 className="text-lg font-semibold truncate flex-1 min-w-0">
+            <span className='opacity-50 pr-1 hidden md:inline'>Get Ready</span>
+            <span className="truncate">{initialStack.name}</span>
+          </h2>
           <button
             onClick={handleCancel}
-            className="text-gray-400 hover:text-white"
+            className="text-gray-400 hover:text-white flex-shrink-0"
           >
             Cancel
           </button>
@@ -368,18 +371,23 @@ export default function StackPlayer({ stack: initialStack, onClose, onMinimize, 
       className="fixed inset-0 z-50 flex flex-col overflow-hidden"
       style={{ background: 'linear-gradient(to bottom, #42423D 0%, #000000 100%)' }}
     >
-      <div className={`px-4 py-3 flex items-center justify-between sticky top-0 z-10 transition-colors duration-200 ${
+      <div className={`px-4 py-3 flex items-center justify-between gap-4 sticky top-0 z-10 transition-colors duration-200 ${
         isScrolled ? 'bg-black/90 backdrop-blur-sm' : 'bg-transparent'
       }`}>
-        <h2 className="text-lg font-semibold"><span className='opacity-50 pr-1'>Now Spinning</span>{initialStack.name}</h2>
-        <div className="flex items-center gap-4 md:gap-8">
+        <h2 className="text-lg font-semibold truncate flex-1 min-w-0">
+          <span className='opacity-50 pr-1 hidden md:inline'>Now Spinning</span>
+          <span className="truncate">{initialStack.name}</span>
+        </h2>
+        <div className="flex items-center gap-4 md:gap-8 flex-shrink-0">
           {/* Mobile: Icon buttons */}
           <button
             onClick={handleEndSessionClick}
             className="md:hidden text-gray-400 hover:text-red-400 transition-colors"
             aria-label="End Session"
           >
-            <img src="/icons/stop-circle.svg" alt="End Session" className="w-6 h-6 brightness-0 invert opacity-60 hover:opacity-100" />
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
           <button
             onClick={handleMinimize}
