@@ -140,12 +140,17 @@ router.get('/daily', async (req, res) => {
     const userId = req.session.userId;
     const today = cacheService.formatDate(new Date());
 
+    console.log(`[Daily Stack] Fetching for user ${userId}, date ${today}`);
+
     // Check cache/database first
     let albums = await cacheService.getDailyStack(userId, today);
+    console.log(`[Daily Stack] Cache result: ${albums ? albums.length + ' albums' : 'null'}`);
 
     if (!albums) {
       // Generate new stack
+      console.log('[Daily Stack] Generating new stack...');
       albums = await generateDailyStack(userId);
+      console.log(`[Daily Stack] Generated ${albums.length} albums`);
 
       // Save to database
       await db.query(
@@ -154,9 +159,11 @@ router.get('/daily', async (req, res) => {
          ON CONFLICT (user_id, stack_date) DO UPDATE SET albums = $3`,
         [userId, today, JSON.stringify(albums)]
       );
+      console.log('[Daily Stack] Saved to database');
 
       // Cache in Redis
       await cacheService.cacheDailyStack(userId, today, albums);
+      console.log('[Daily Stack] Cached in Redis');
     }
 
     res.json({
@@ -169,7 +176,11 @@ router.get('/daily', async (req, res) => {
     });
   } catch (error) {
     console.error('Get daily stack error:', error);
-    res.status(500).json({ error: 'Failed to generate daily stack' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({
+      error: 'Failed to generate daily stack',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
