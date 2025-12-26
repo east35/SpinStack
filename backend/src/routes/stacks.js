@@ -61,7 +61,7 @@ async function generateStyleStacks(userId) {
     // Query records matching any style in this cluster
     const result = await db.query(
       `SELECT id, discogs_release_id, title, artist, album_art_url, year, genres, styles,
-              label, catalog_number, format, country, listened_count, last_played_at,
+              label, catalog_number, format, listened_count, last_played_at,
               date_added_to_collection, is_liked,
               array_length(genres, 1) as genre_count
        FROM vinyl_records
@@ -111,7 +111,7 @@ async function generateDailyStack(userId) {
   // Pull more than needed, then enforce unique releases
   const result = await db.query(
     `SELECT id, discogs_release_id, title, artist, album_art_url, year, genres, styles,
-            label, catalog_number, format, country, listened_count, last_played_at,
+            label, catalog_number, format, listened_count, last_played_at,
             date_added_to_collection, is_liked
      FROM vinyl_records
      WHERE user_id = $1
@@ -207,7 +207,7 @@ async function generateWeeklyStacks(userId, weekStartDate) {
     try {
       const result = await db.query(
         `SELECT id, discogs_release_id, title, artist, album_art_url, year, genres, styles,
-                label, catalog_number, format, country, listened_count, last_played_at,
+                label, catalog_number, format, listened_count, last_played_at,
                 date_added_to_collection, is_liked
          FROM vinyl_records
          WHERE user_id = $1 ${whereClause}
@@ -321,7 +321,7 @@ async function generateWeeklyStacks(userId, weekStartDate) {
   if (stacks.length === 0) {
     const result = await db.query(
       `SELECT id, discogs_release_id, title, artist, album_art_url, year, genres, styles,
-              label, catalog_number, format, country, listened_count, last_played_at,
+              label, catalog_number, format, listened_count, last_played_at,
               date_added_to_collection, is_liked
        FROM vinyl_records
        WHERE user_id = $1
