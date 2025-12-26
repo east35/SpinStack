@@ -16,6 +16,9 @@ const statsRoutes = require('./routes/stats');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Trust proxy to get correct protocol from X-Forwarded-Proto
+app.set('trust proxy', 1);
+
 // Redis client setup
 let redisClient;
 if (process.env.REDIS_URL) {
@@ -42,15 +45,15 @@ const sessionConfig = {
   resave: false,
   saveUninitialized: true, // Create session even if not modified (needed for OAuth)
   cookie: {
-    secure: false, // Must be false for HTTP (would need true for sameSite: 'none')
+    secure: 'auto', // Auto-detect: true if HTTPS (via X-Forwarded-Proto), false if HTTP
     httpOnly: false, // Allow JavaScript access for mobile compatibility debugging
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-    sameSite: 'lax', // 'lax' works better for mobile than 'none' without HTTPS
+    sameSite: 'lax', // 'lax' allows cookies to be sent on OAuth redirects
     path: '/', // Ensure cookie is sent for all paths
     // Don't set domain - let browser use the request hostname
   },
   name: 'vinyl.sid', // Custom session name
-  proxy: true, // Trust proxy headers
+  proxy: true, // Trust proxy headers (required for secure: 'auto' to work)
 };
 
 if (redisClient) {
