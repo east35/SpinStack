@@ -38,9 +38,9 @@ server {
         proxy_pass_header Set-Cookie;
     }
 
-    # Auth callback route (also goes to backend)
-    location /auth/ {
-        proxy_pass http://spinstack-backend:3001;
+    # Auth callback route (redirect to /api/auth/callback on backend)
+    location /auth/callback {
+        proxy_pass http://spinstack-backend:3001/api/auth/callback;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';

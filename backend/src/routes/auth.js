@@ -50,17 +50,17 @@ router.get('/login', async (req, res) => {
   }
 });
 
-// Step 2: Handle OAuth callback
-router.post('/callback', async (req, res) => {
+// Step 2: Handle OAuth callback (GET for Discogs redirect)
+router.get('/callback', async (req, res) => {
   try {
-    console.log('🔐 OAuth callback received');
-    const { oauth_verifier, state } = req.body;
+    console.log('🔐 OAuth callback received (GET)');
+    const { oauth_token, oauth_verifier } = req.query;
+    console.log('OAuth token:', oauth_token);
     console.log('OAuth verifier:', oauth_verifier);
-    console.log('State key:', state);
 
     if (!oauth_verifier) {
       console.log('❌ Missing OAuth verifier');
-      return res.status(400).json({ error: 'Missing OAuth verifier' });
+      return res.status(400).send('Missing OAuth verifier');
     }
 
     let oauthToken, oauthTokenSecret;
@@ -144,14 +144,9 @@ router.post('/callback', async (req, res) => {
         }
 
         console.log('✅ Session regenerated and saved successfully, ID:', req.sessionID);
-        res.json({
-          success: true,
-          user: {
-            id: user.id,
-            username: user.discogs_username,
-          },
-          sessionId: req.sessionID, // Return session ID for manual cookie management
-        });
+        // Redirect back to frontend after successful auth
+        const redirectUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        res.redirect(redirectUrl);
       });
     });
   } catch (error) {
