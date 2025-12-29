@@ -63,29 +63,9 @@ router.get('/callback', async (req, res) => {
       return res.status(400).send('Missing OAuth verifier');
     }
 
-    let oauthToken, oauthTokenSecret;
-
-    // Try to get OAuth tokens from Redis using state key
-    if (state && redisClient) {
-      const storedData = await redisClient.get(`oauth:${state}`);
-      if (storedData) {
-        const parsed = JSON.parse(storedData);
-        oauthToken = parsed.token;
-        oauthTokenSecret = parsed.tokenSecret;
-        // Delete the state key after use (one-time use)
-        await redisClient.del(`oauth:${state}`);
-        console.log('✅ Retrieved OAuth tokens from Redis');
-      }
-    }
-
-    // Fallback to session if Redis lookup failed
-    if (!oauthToken || !oauthTokenSecret) {
-      oauthToken = req.session.oauthToken;
-      oauthTokenSecret = req.session.oauthTokenSecret;
-      if (oauthToken && oauthTokenSecret) {
-        console.log('✅ Retrieved OAuth tokens from session (fallback)');
-      }
-    }
+    // Get OAuth tokens from session
+    const oauthToken = req.session.oauthToken;
+    const oauthTokenSecret = req.session.oauthTokenSecret;
 
     if (!oauthToken || !oauthTokenSecret) {
       console.log('❌ Missing OAuth tokens - neither in Redis nor session');
